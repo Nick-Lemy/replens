@@ -1,0 +1,144 @@
+# Understand the curl project from beginning to end
+
+## The question
+
+We want to know whether an ordinary phone camera can help estimate **repetitions in reserve**, or **RIR**. RIR means: *after this completed curl, how many more complete curls could the person do before the agreed stopping point?*
+
+We will compare two methods:
+
+- **Speed baseline:** use how curl movement changes during a set.
+- **Speed + movement method:** use the same speed information and one extra measurement of small, irregular visible movement.
+
+The second method is a **hypothesis**. We have not shown that it works better.
+
+## The whole path
+
+```text
+Video → body points → complete reps → measurements → labeled data → models → test on new people
+```
+
+### 1. Video
+
+One video should show a complete set of simultaneous two-arm dumbbell curls. An **uncut set** matters because we need to see the beginning, every complete rep, and why the set ended. Frame rate (for example, 30 frames per second) lets us turn movement between images into movement per second.
+
+The current app accepts a recorded video. This choice lets us replay the exact same input while debugging. A later version can process a live camera stream.
+
+### 2. Body points (pose estimation)
+
+**Pose estimation** is a computer vision model that guesses where body joints appear in each image. We use Google's already trained MediaPipe model. It gives us estimated left and right shoulder, elbow, and wrist positions. **Pretrained** means someone else trained this pose model on other data; we are using it, not training it from scratch.
+
+These are estimates, so the app also records when both arms cannot be seen clearly. Dark lighting, an arm hidden behind the body, or camera movement can make the points wrong.
+
+The app offers **Full** and **Heavy** versions of that existing pose model. Heavy is designed for stronger pose accuracy on general benchmarks but takes longer; it is not guaranteed to work better on our curl videos. Run the same clip through both and look at the points and the percentage of frames where both arms were tracked.
+
+The app shows tracking percentages for the left arm, right arm, and both together. A side-view clip may clearly show one arm while hiding the other. In that case the strict two-arm counter may show zero even though one arm is curling; the overlay and percentages reveal why.
+
+We checked a bench-press clip supplied by Nick as a **negative example**. The curl app counted zero, as it should. The clip showed good tracking of one arm and much weaker tracking of the other because of the bench camera view. It cannot tell us whether curl counting is accurate; that needs an actual two-arm curl clip.
+
+A **frame** is one still picture from the video. A **landmark** is one of the body points the pose model predicts in that picture.
+
+### 3. Complete reps (rep detection)
+
+The three points on an arm make an **elbow angle**. When the arm is straight, that angle is large. During a curl, the angle gets smaller. The code converts this to an **elbow bend** value that grows as the dumbbell rises.
+
+The code looks for a bottom → top → bottom pattern. It counts the rep only if both arms show enough movement at about the same time. This is currently a **rule-based algorithm**, not a newly trained curl-counting model. The user does not mark every rep, but we must manually check a few videos to measure how often the rules are right.
+
+The annotated playback shows **S** for shoulder, **E** for elbow, and **W** for wrist on each arm. It shows the detected **LIFTING** or **LOWERING** phase, and adds one to **COUNT** after an accepted rep returns to the bottom. The decision table gives the time and reason when a possible rep is rejected. If the points jump away from the real joints, the pose model is failing. If the points are right but the count is wrong, the rep rules are failing.
+
+The arm-bend graph is the signal the rep counter uses. Each large rise is a possible curl. A green dot shows a counted peak; an orange dot shows a rejected peak. The app checks for a full return to the bottom, enough movement in both arms, and sensible timing. A peak by itself is not always a complete rep.
+
+On one public two-arm curl clip, the first version counted 7 of the 10 large curl cycles. It included waiting time before the first lift and rejected slower late curls because of an eight-second limit. Choosing the bottom just before and after each peak, and allowing slower movements, made the Heavy model count all 10 large cycles on that clip. This is a useful debugging result, not proof that it will count correctly on every person or view.
+
+The upload app analyzes the whole clip before it makes this playback. The moving count lets us inspect the decision at each moment, but it is **not yet a live webcam counter**.
+
+Before looking for that pattern, the code **smooths** the angle curve: it reduces tiny frame-to-frame jumps that may come from imperfect body tracking. It also checks that the elbows do not move too far and the wrists actually rise. These checks can reject a real curl or accept another movement, so they need testing on real clips.
+
+### 4. Measurements (features)
+
+A **feature** is a number we give to a later prediction model. Right now, each detected rep has:
+
+- **Up time:** seconds taken to lift the weights.
+- **Curl range:** how many degrees the elbow bend changed.
+- **Mean up speed:** curl range divided by up time, in degrees per second.
+- **Peak up speed:** the largest short-term change in elbow bend per second.
+- **Movement instability:** how much the tracked wrist path wiggles around a smooth path. This is experimental. It may include pose-tracking mistakes or camera shake, so we cannot call it muscle tremor yet.
+
+This process is called **feature extraction**: turn raw video into smaller numbers that a later model can use. The speed here comes from arm angle; it is not yet a physical measurement of the dumbbell in metres per second.
+
+**Normalization** means adjusting a measurement so camera distance has less effect. The experimental instability value divides wrist movement by the visible width between the shoulders. This is useful only when both shoulders are visible and separated enough in the image.
+
+### 5. A table with one row per rep
+
+A **dataset** is a table the model learns from. Every complete rep in every usable set gets a separate row. If one video contains a set of 8 complete reps, it gives 8 rows. Each row needs a participant ID, set ID, rep number, measurements, and eventually a valid answer (label).
+
+The app asks for a participant code such as `P001` and a set code such as `S01` before downloading. The exported file is named `P001_S01_reps.csv`, and **every row** contains both codes. A participant's second set would be `P001_S02_reps.csv`. Do not use real names as IDs. Keep the code-to-name list separately in approved storage. Use `DEMO` for online clips used only to debug the pipeline.
+
+After collection, place the set files in one folder and run `combine_csvs.py`. It joins the 40 small tables into one larger table and checks for duplicated or inconsistent IDs. For example, 20 people × 2 sets × 10 reps would produce about 400 rows. This is called **combining or concatenating data**; it does not train a model. Some rows may still have blank RIR labels and must be reviewed before model training.
+
+Example:
+
+| Person | Set | Rep | Mean up speed | Movement instability | RIR after rep |
+|---|---|---:|---:|---:|---:|
+| P01 | 1 | 1 | 95 | 0.012 | 7 |
+| P01 | 1 | 2 | 91 | 0.014 | 6 |
+| P01 | 1 | 8 | 50 | 0.030 | 0 |
+
+Those numbers are invented examples, not results. The app initially leaves RIR blank. After analysis, the reviewer can confirm that the whole set is uncut, every completed curl was counted, and another curl was attempted but could not be completed. Only then does the app fill in the labels, counting backward from 0 for the last completed rep. This is a checked answer supplied by the set ending, **not** an RIR prediction from video movement.
+
+### 6. The correct answer (label)
+
+A **label** or **target** is the answer the prediction model tries to learn. Here it is RIR after each rep. If a person completes 8 reps and then reaches the approved failure endpoint, the labels are 7, 6, 5, 4, 3, 2, 1, 0. If they simply choose to stop after 8, we do not know how many more they could have done, so we cannot assign those labels.
+
+The last completed rep gets **0** only if the person then attempts another rep and cannot complete it under the agreed rules. The final successful rep by itself does not prove that no reps remained. The app asks for explicit confirmation because a wrong automatic count would also make all the backward labels wrong.
+
+The recording and endpoint procedure needs supervisor and ethics approval before collecting volunteers. A set stopped by pain, loss of control, or personal choice must not be treated as a proven failure set.
+
+### 7. Train two models
+
+**Training** means showing a model many labeled examples so it can learn a relationship between measurements and RIR. We will use a simple model because the planned study is small: about 20 volunteers and at most 40 sets.
+
+A **baseline** is the simpler method we compare against. Here it uses speed information. The second model gets exactly the same speed information plus movement-instability features. Both use the same people, labels, and test procedure. That makes the comparison fair.
+
+The MediaPipe pose model and our future RIR model are **different models**. MediaPipe finds body points; the RIR model will use measurements made from those points to predict reps left.
+
+**Supervised learning** means the future RIR model learns from examples that already have the correct answer attached. Without valid RIR labels, we can run the video pipeline but cannot train or fairly score that predictor. **Overfitting** means a model learns quirks of the training examples and fails on new people; participant-held-out testing checks for this problem.
+
+### 8. Test on new people
+
+We must keep all reps from a person together. Some people are used to train the models; other people are used only for testing. A **held-out participant** is someone the models did not see while learning. This helps show whether the method works on a new lifter, rather than merely remembering one person's movement.
+
+We plan to report **mean absolute error (MAE)**. If the real RIR is 3 and the prediction is 5, the absolute error is 2 reps. MAE is the average of those errors. Lower is better. With a small study, a small difference between models may be due to chance, so we will report the number of people and valid sets alongside the score.
+
+## What the code files do
+
+The repository has four main folders. `pilot/` contains this working video-processing demo. `training/` will contain the code that trains and tests the RIR models. `web/` will contain the final user application. `docs/` holds the proposal. The web and training folders currently contain READMEs explaining their planned contents.
+
+- `app.py` builds the upload page, shows the video, starts analysis, and displays the graph and table.
+- `pipeline.py` downloads the pose model, reads video frames, finds body points, counts complete reps, and calculates measurements.
+- `pipeline.py` also makes the annotated MP4 that reveals what the counter saw at each moment.
+- `app.py` marks accepted and rejected peaks on the arm-bend graph and asks for human confirmation before filling RIR labels.
+- `requirements.txt` lists the Python libraries needed to run the app.
+- `combine_csvs.py` joins the per-set CSV files and checks for duplicate or inconsistent IDs.
+- `.gitignore` keeps large videos, model files, and the Python environment out of Git.
+
+In `pipeline.py`, the main functions run in this order:
+
+1. `ensure_model()` gets the pretrained pose model once.
+2. `analyze_video()` reads frames and asks MediaPipe for body points.
+3. `_landmarks()` extracts shoulders, elbows, and wrists and draws them on a preview frame.
+4. `_angle()` calculates elbow angle from those three points.
+5. `_smooth()` reduces frame-to-frame noise in the angle signal.
+6. `detect_reps()` finds full bottom → top → bottom curls from both arms.
+7. `_instability()` measures wrist-path wiggle after subtracting a smooth path.
+
+## What to say in a presentation
+
+> “I have started with the video-processing part. The app takes a curl video, tracks shoulder, elbow, and wrist points with a pretrained computer vision model, detects complete two-arm curls, and makes one row of measurements for each rep. This is not yet a trained reps-left predictor. After ethics approval, I will collect sets with documented endpoints, attach valid RIR labels, and compare a speed-only baseline with speed plus small-movement features on participants the models have never seen.”
+
+## Questions to ask while checking the demo
+
+1. Does the app's count match the number of complete two-arm curls I can see?
+2. Do both arm curves rise and fall once for each rep?
+3. Does the speed measurement generally drop near the end of this set, or not?
+4. Is the camera still, and are both arms visible enough to trust the measurements?
+5. Was the set's ending actually verified? If not, leave RIR blank.

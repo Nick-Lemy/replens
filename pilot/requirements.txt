@@ -1,0 +1,7 @@
+mediapipe==1.1.0
+opencv-python-headless==5.0.0.93
+numpy==2.5.4
+pandas==3.0.6
+scipy==1.18.1
+streamlit==1.65.0
+altair==6.0.0

@@ -1,0 +1,16 @@
+# Project context
+
+- Project name: RepLens. The GitHub repository is `Nick-Lemy/replens` and must remain private unless the user explicitly requests otherwise. The local workspace folder is still named `velocity-tremor-ml`.
+
+- Owner: Nick Lemy Kayiranga, ALU Software Engineering capstone, Kigali, Rwanda. Supervisor: Hubert Apana.
+- Research question: for simultaneous two-arm dumbbell biceps curls, does adding visible small-movement features improve camera-based RIR estimates over a speed-only baseline for unseen people?
+- Proposed study: 20 adult volunteers, up to two supervised sets each at The Manor Hotel's Gym. No volunteer recruitment or recording before ALU ethics approval, gym permission, and consent.
+- RIR labels require a documented endpoint under the supervisor-approved rule. A voluntary or unclear stop must not be assigned exact RIR.
+- Split training and test data by participant, not by rep or video. Compare matched speed-only and speed-plus-movement models on the same held-out people.
+- The current local app is only the video-processing pilot. It uses uploaded video, selectable Full/Heavy pretrained MediaPipe pose landmarks, automatic rep detection, annotated playback with a running count, counting diagnostics, and per-rep movement features. It can fill RIR labels only after the reviewer confirms a complete uncut set, correct rep count, and an unsuccessful next rep. Those labels are not model predictions; it has no trained RIR predictor yet.
+- Debugging on the public Ricky Ryan simultaneous-curl clip found 10 large curl cycles. Heavy initially counted 7 because the first included waiting time and the last two exceeded an eight-second duration limit. The revised detector counts 10 on that clip; Full is less stable. Keep testing on other people/views before claiming accuracy.
+- The Ricky Ryan clip is useful as a local pilot for rep counting and movement features. Its ending shows a small attempted movement after the ten counted reps, but the failure endpoint and research reuse conditions are not documented here; do not treat its RIR values as validated study labels.
+- Repository layout: `pilot/` holds the current Streamlit video prototype, pose pipeline, CSV combiner, and `LEARN.md`; `web/` is the planned web application; `training/` is planned RIR model training and evaluation; `docs/` holds the proposal. `web/` and `training/` currently contain explanatory READMEs only. The revised proposal does not specify a final web framework. Keep these components in one repository; the root `README.md` is the project overview.
+- Each set CSV carries a pseudonymous participant ID (`P001` style), set ID (`S01` style), label status, and pose model. Public test clips use `DEMO` and must stay separate from study data. `pilot/combine_csvs.py` joins set CSVs into one rep table and checks for duplicate IDs and inconsistent labels; names and the code-to-name key stay outside the repo in approved storage.
+- Call the extra feature **movement instability** until evidence shows that it reflects muscle tremor rather than camera or tracking noise.
+- Keep explanations simple enough for a reader new to ML. Update `pilot/LEARN.md` when adding a new pipeline stage, term, or claim.
