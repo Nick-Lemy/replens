@@ -15,3 +15,10 @@ data/
 !.env.example
 node_modules/
 .next/
+
+dist/
+coverage/
+*.tsbuildinfo
+.netlify/
+
+.pnpm-store/

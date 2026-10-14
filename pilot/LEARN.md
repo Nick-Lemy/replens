@@ -142,3 +142,43 @@ In `pipeline.py`, the main functions run in this order:
 3. Does the speed measurement generally drop near the end of this set, or not?
 4. Is the camera still, and are both arms visible enough to trust the measurements?
 5. Was the set's ending actually verified? If not, leave RIR blank.
+
+## Planned web architecture
+
+React builds the pages the lifter sees. NestJS handles server requests such as login and saving session summaries; both use TypeScript. A **VPS** is a rented server where we can run NestJS, PostgreSQL and Caddy. PostgreSQL stores accounts and saved summaries. **Prisma** is the library our backend uses to read and write those records. **Netlify** hosts the built React app and versioned model files. **Caddy** provides HTTPS for the VPS API and sends API requests to NestJS.
+
+The proposed live processing runs on the phone. A **Web Worker** runs heavier code away from the page so the controls remain responsive. MediaPipe finds body points; our feature code measures each completed rep; **ONNX Runtime Web** runs an exported, trained RIR model. Export means saving a model in a format another runtime can load. We must check that the exported model gives matching answers and works fast enough on real phones. This is planned architecture, not working RIR prediction yet.
+
+Python training remains offline. It compares the two models on unseen people before a suitable model is deployed. See `../web/ARCHITECTURE.md` for the proposed design.
+
+**Docker Compose** describes and starts the server containers together. A container packages a service with its runtime dependencies. Our proposed VPS services are Caddy, NestJS and PostgreSQL. A **Caddyfile** tells Caddy how to serve the app and route API requests. **Better Auth** will manage accounts and login sessions inside NestJS. These are architecture decisions; deployment files have not been created yet.
+
+The React frontend will be hosted on **Netlify**. The browser downloads it and the model files, then runs the proposed live processing on the phone. Account and history requests go to the separate VPS backend. We must configure allowed frontend origins and test login cookies across these deployments. Docker Compose manages the VPS services.
+
+## Frontend and backend starter
+
+`web/frontend/` now contains React + TypeScript pages, styled with Tailwind CSS. **Vite** runs the development server and bundles the app into static files for Netlify. This is **client rendering**: the phone browser draws the interface. We are not using React Router's server framework.
+
+`web/backend/` contains a NestJS starter. A **module** groups a backend feature; a **controller** handles requests. The first module is a health check: `GET /api/health` returns `status: ok` when the API process responds. It does not check a database. The frontend actually requests it and shows whether the backend is reachable.
+
+A **pnpm workspace** lets one repository manage these two JavaScript packages. Run `pnpm install` at the root to install their dependencies. `pnpm dev` starts both development servers. During development, Vite acts as a **proxy**: a browser request to `/api/health` is forwarded to NestJS. Authentication, live tracking and RIR inference have not been implemented in this starter.
+
+**pnpm** is our JavaScript package manager. `pnpm-workspace.yaml` lists the frontend and backend packages. `pnpm install` installs their libraries from the repository root; `pnpm dev` starts both. The lockfile records the exact installed versions so other machines can install the same dependency tree.
+
+## Mobile PWA interface
+
+The frontend now has five pages: Home, Guide, Live, History and Profile. A **PWA** is a website that a supported browser can add to the phone's home screen. A **manifest** describes its name, colours and icons. A **service worker** is separate browser code that can cache public app files, so previously loaded pages can open without a connection. It is different from the future Web Worker that will process movement.
+
+Our camera preview requests video only. It does not record, upload or store footage. Leaving the live page or backgrounding the app stops the camera tracks. The preview has camera switching, a countdown and a timer. These controls do not mean the app can count reps or predict RIR yet. Those fields stay unavailable until the processing pipeline is connected.
+
+Account forms are visual designs only; they do not submit credentials or create accounts. History starts empty. Camera/countdown preferences stay in localStorage, a small browser storage area. The service worker caches only the public interface and icons, not API responses, private records or camera data. See `../web/frontend/README.md` for files, commands and testing limits.
+
+## Mobile interface refinement
+
+Home now focuses on the exercise and next session, with a guide link and recent sessions. Instructions live in the Guide page. We removed decorative badges and large promotional headings. The font is **Sora**, loaded from Google Fonts. If the font cannot load, the browser uses a system fallback. It is not part of the offline app-shell cache in this revision; this avoids adding an unresolved package to the current lockfile. Browser checking remains pending.
+
+## Exercise guide library
+
+The Guide page now includes 14 exercises. Search and body-area filters help users find one, then open its equipment, muscle focus, steps and form tips. The instructions link to technique references. This is educational content, not another trained model.
+
+A **catalog** is a structured list of entries. Our TypeScript catalog gives each exercise a stable ID and its guide content. Only simultaneous two-arm curls link to the current camera preview. Supporting another exercise in live analysis will also require suitable data, a way to measure its movements and evaluation of the resulting predictions. Adding a guide alone does not do that.

@@ -1,0 +1,17 @@
+{
+  "name": "replens",
+  "private": true,
+  "version": "0.1.0",
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter \"@replens/*\" run dev",
+    "dev:frontend": "pnpm --filter @replens/frontend dev",
+    "dev:backend": "pnpm --filter @replens/backend dev",
+    "build": "pnpm -r build",
+    "check": "pnpm -r check",
+    "start:backend": "pnpm --filter @replens/backend start:prod"
+  },
+  "packageManager": "pnpm@11.25.0"
+}
