@@ -197,6 +197,6 @@ Edit individual screens in `web/frontend/src/pages/`. Edit shared colors and the
 
 ### Git hooks and commit labels
 
-A **Git hook** runs a check automatically before a Git action. Our pre-commit hook checks staged whitespace and TypeScript. Our pre-push hook builds the frontend/backend and runs the existing frontend tests. These checks help catch code problems; they do not prove the RIR model is accurate. Run `pnpm hooks:install` once in each checkout to activate them.
+A **Git hook** runs a check automatically before a Git action. **Husky** connects our `.husky/` scripts to Git. Our pre-commit hook checks staged whitespace and TypeScript. Our pre-push hook builds the frontend/backend and runs the existing frontend tests. These checks help catch code problems; they do not prove the RIR model is accurate. `pnpm install` activates the hooks when install scripts are enabled; `pnpm hooks:install` activates them manually. Setup is skipped in CI and production builds.
 
 A **Conventional Commit** starts with a short label: `feat` for a feature, `fix` for a bug fix, `refactor` for code cleanup, or `chore` for tooling. For example, `feat(web): add exercise photo guides`.

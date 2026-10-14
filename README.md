@@ -34,7 +34,7 @@ The React app uses Vite and Tailwind CSS with browser rendering. The NestJS back
 
 ## Git checks and commit messages
 
-Activate the tracked Git hooks once per checkout, after installing dependencies:
+Husky manages the tracked Git hooks in `.husky/`. A root `prepare` script activates them during `pnpm install` when lifecycle scripts are enabled. To activate or repair them manually after installation:
 
 ```bash
 pnpm hooks:install
@@ -45,4 +45,6 @@ pnpm hooks:install
 
 Hooks require pnpm on your terminal's PATH. They validate the current working files; stage the intended changes before committing. These checks do not evaluate the Python pilot or RIR model accuracy. Run them manually with `pnpm check`, `pnpm build`, and `pnpm test`.
 
-Use Conventional Commit messages: `type(scope): short description`. Common types are `feat` (new feature), `fix` (bug fix), `refactor` (code restructuring), `docs` (documentation), `test` (tests), and `chore` (tooling). For example: `feat(web): add exercise photo guides`. Hook activation is local to each checkout; `.githooks/` and the installer are versioned. The installer preserves any existing different `core.hooksPath` setting.
+Use Conventional Commit messages: `type(scope): short description`. Common types are `feat` (new feature), `fix` (bug fix), `refactor` (code restructuring), `docs` (documentation), `test` (tests), and `chore` (tooling). For example: `feat(web): add exercise photo guides`. These are naming conventions; commit-message validation is not configured.
+
+Husky is a root development dependency. `.husky/install.mjs` skips setup in CI, production installs and when `HUSKY=0`, so Netlify and future container builds do not need Git hooks. Generated Husky files under `.husky/_/` are ignored; commit the hook files themselves. Activation is local to each checkout and requires permission to update `.git/config`. Migrating from our old `.githooks` setup uses the same `pnpm hooks:install` command.

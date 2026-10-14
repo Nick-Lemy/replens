@@ -12,8 +12,12 @@
     "build": "pnpm -r build",
     "check": "pnpm -r check",
     "test": "pnpm -r --if-present test",
-    "hooks:install": "node scripts/install-hooks.mjs",
+    "prepare": "node .husky/install.mjs",
+    "hooks:install": "husky",
     "start:backend": "pnpm --filter @replens/backend start:prod"
   },
-  "packageManager": "pnpm@11.25.0"
+  "packageManager": "pnpm@11.25.0",
+  "devDependencies": {
+    "husky": "^9.1.7"
+  }
 }
