@@ -11,6 +11,8 @@
     "dev:backend": "pnpm --filter @replens/backend dev",
     "build": "pnpm -r build",
     "check": "pnpm -r check",
+    "test": "pnpm -r --if-present test",
+    "hooks:install": "node scripts/install-hooks.mjs",
     "start:backend": "pnpm --filter @replens/backend start:prod"
   },
   "packageManager": "pnpm@11.25.0"

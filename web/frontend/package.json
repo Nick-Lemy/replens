@@ -7,8 +7,10 @@
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
     "check": "tsc --noEmit",
+    "test": "node --test scripts/test-pwa.mjs scripts/test-photos.mjs",
     "preview": "vite preview",
-    "test:pwa": "node scripts/test-pwa.mjs"
+    "test:pwa": "node scripts/test-pwa.mjs",
+    "test:photos": "node scripts/test-photos.mjs"
   },
   "dependencies": {
     "react": "^19.3.0",

@@ -22,29 +22,28 @@ export function Profile({
 }) {
   return (
     <>
-      <div className="page-heading">
-        <h1 className="page-title">Profile</h1>
+      <div className="mb-7 lg:mb-8">
+        <h1 className="text-[clamp(28px,_4vw,_34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">Profile</h1>
       </div>
-      <div className="profile-grid">
-        <section className="surface-card">
-          <div className="guest-avatar">
-            <Icon name="user" />
+      <div className="grid gap-5 sm:grid-cols-[0.9fr_1.1fr] sm:gap-7">
+        <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-[25px]">
+          <div className="grid place-items-center size-15.5 rounded-full bg-[#d5dac5] text-[#313b29]">
+            <Icon className="size-7" name="user" />
           </div>
-          <h2 className="card-title mt-5">Guest account</h2>
-          <p className="description mt-3">
+          <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-5">Guest account</h2>
+          <p className="text-muted text-sm leading-[1.75] mt-3">
             Account access will let you save and revisit your sessions.
           </p>
-          <button className="primary-button mt-6" onClick={openAccount}>
+          <button className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6" onClick={openAccount}>
             View account setup
-            <Icon name="arrow" />
           </button>
         </section>
         <div className="grid gap-5">
-          <section className="surface-card">
+          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-[25px]">
             <h2 className="font-semibold">Camera preferences</h2>
-            <label className="setting-row">
+            <label className="flex items-center justify-between gap-3 text-xs mt-5">
               <span>Preferred camera</span>
-              <select
+              <select className="text-[#d7e0cd] bg-[#30352b] p-2.5 rounded-lg max-w-37.5"
                 value={preferences.facing}
                 onChange={(event) =>
                   update({
@@ -57,9 +56,9 @@ export function Profile({
                 <option value="environment">Rear camera</option>
               </select>
             </label>
-            <label className="setting-row">
+            <label className="flex items-center justify-between gap-3 text-xs mt-5">
               <span>Preview countdown</span>
-              <select
+              <select className="text-[#d7e0cd] bg-[#30352b] p-2.5 rounded-lg max-w-37.5"
                 value={preferences.countdown}
                 onChange={(event) =>
                   update({
@@ -77,30 +76,30 @@ export function Profile({
               Preferences stay in this browser.
             </p>
           </section>
-          <section className="surface-card">
-            <h2 className="card-title">Add to home screen</h2>
-            <p className="description mt-3">
+          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-[25px]">
+            <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18]">Add to home screen</h2>
+            <p className="text-muted text-sm leading-[1.75] mt-3">
               Add RepLens to your home screen for an app-like experience.
             </p>
             {installed ? (
-              <p className="inline-link mt-4">
-                <Icon name="check" />
+              <p className="inline-flex items-center gap-3.5 text-xs font-semibold text-accent mt-4">
+                <Icon className="size-4.5" name="check" />
                 You’re using the installed app
               </p>
             ) : canInstall ? (
               <button
-                className="secondary-button mt-5"
+                className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03] mt-5"
                 onClick={() => {
                   void install();
                 }}
               >
                 Install RepLens
-                <Icon name="download" />
+                <Icon className="size-[19px]" name="download" />
               </button>
             ) : (
-              <details className="install-help mt-4">
-                <summary>How to add to home screen</summary>
-                <p>
+              <details className="mt-4">
+                <summary className="text-xs text-accent py-[9px] px-0">How to add to home screen</summary>
+                <p className="text-xs leading-[1.8] text-muted mt-2">
                   On iPhone, use Safari’s Share menu, then Add to Home Screen.
                   On Android, open the browser menu and choose Install app or
                   Add to Home Screen when available.
@@ -110,11 +109,11 @@ export function Profile({
           </section>
         </div>
       </div>
-      <section className="privacy-card mt-6">
-        <Icon name="shield" />
+      <section className="flex items-start gap-4 p-[25px] border border-[#ffffff15] rounded-[18px] mt-6">
+        <Icon className="size-6 text-[#b6c0aa]" name="shield" />
         <div>
-          <h2>Camera privacy</h2>
-          <p>
+          <h2 className="text-sm font-medium">Camera privacy</h2>
+          <p className="text-xs leading-[1.8] text-muted mt-[9px]">
             This preview does not upload or store camera footage. Only your
             camera preferences are saved on this device. Account and
             session-data controls will be added with those features.

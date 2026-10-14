@@ -1,6 +1,6 @@
 # RepLens React PWA
 
-A mobile-first React + TypeScript interface built with Vite and Tailwind CSS. Its visual direction adapts the [Ronas IT reference](https://dribbble.com/shots/23816920-Fitness-Mobile-App-Design): charcoal surfaces, amber actions, exercise-led screens and restrained statistics. Original SVG artwork and line icons are local assets. Sora is loaded through its Google Fonts stylesheet with system fallback. There are no emoji or third-party image calls. This font stylesheet requires a connection unless the browser already cached it; it is not included in the public-shell service-worker cache.
+A mobile-first React + TypeScript interface built with Vite and Tailwind CSS. Its visual direction adapts the [Ronas IT reference](https://dribbble.com/shots/23816920-Fitness-Mobile-App-Design): charcoal surfaces, amber actions, exercise-led screens and restrained statistics. Line icons are local assets. Exercise photos are served from Free Exercise DB and Wikimedia Commons, with source/license metadata and visible credits. Sora is loaded through its Google Fonts stylesheet with system fallback. There are no emoji or cartoon exercise illustrations. Photos are fetched from their external providers when displayed. This font stylesheet requires a connection unless the browser already cached it; it is not included in the public-shell service-worker cache.
 
 ## Run
 
@@ -24,7 +24,7 @@ Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend to
 - Account form designs with native validation. These do not send credentials, create accounts or sign users in; that requires Better Auth integration.
 - Bottom navigation on phones, sidebar on larger screens, hash navigation with browser Back support, keyboard focus styles and a native modal dialog.
 
-Rep tracking, RIR inference, authenticated history and saved sessions remain unimplemented. Rep and RIR fields display unavailable marks rather than example predictions. The athlete artwork is illustrative; it is not tracked footage.
+Rep tracking, RIR inference, authenticated history and saved sessions remain unimplemented. Rep and RIR fields display unavailable marks rather than example predictions. Exercise photos are static guide references; they are not live footage or model outputs.
 
 ## PWA
 
@@ -50,7 +50,7 @@ Netlify builds from the repo root with `pnpm --filter @replens/frontend build` a
 | `src/hooks/useCamera.ts` | Camera acquisition, errors and cleanup |
 | `src/hooks/useInstall.ts` | Browser install prompt |
 | `src/components/` | Original icons/artwork and account form |
-| `src/styles.css` | Tailwind theme, shared UI styles and responsive layout |
+| `src/styles.css` | Shared Tailwind colors/font and global accessibility/base rules |
 | `public/manifest.webmanifest` | PWA identity and icons |
 | `scripts/build-sw.mjs` | Public-shell cache generated after build |
 | `scripts/test-pwa.mjs` | Cache exclusion, offline fallback and versioning checks |
@@ -67,4 +67,27 @@ The mobile redesign uses compact titles, a single-column home screen, a fixed bo
 
 `src/content/exercises.ts` is the typed, locally bundled guide catalog. It covers arms, chest, back, shoulders, legs and core. The current research still concerns simultaneous two-arm dumbbell curls; adding guides does not add tracking or validated RIR support. `cameraPreview` is true only for that curl variation. The standing curl guide links explicitly to a related seated-curl reference, rather than claiming identical posture. Other guides link to their specific ACE technique pages.
 
-To add a guide, supply a stable ID, display name, body area, equipment, focus, steps, tips and reference URL. Model support needs a separate evaluated pipeline for the exercise; do not turn on camera or prediction affordances merely because an exercise has guide content. No ACE photos/videos are copied into the app. Sources are available online; bundled guide text remains part of the public offline shell.
+To add a guide, supply a stable ID, display name, body area, equipment, focus, steps, tips and reference URL. Model support needs a separate evaluated pipeline for the exercise; do not turn on camera or prediction affordances merely because an exercise has guide content. No ACE photos/videos are copied into the app. Sources and photos are hosted externally and require a connection unless already in the browser HTTP cache. The service worker does not cache them; bundled guide text remains part of the public offline shell.
+
+## Exercise photographs
+
+`src/content/exercisePhotos.ts` maps all 14 guide IDs to public photographs. Thirteen guides use [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), whose publisher declares the catalog/imagery public-domain under its [Unlicense](https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md). It provides an open JSON endpoint and image URLs, with no API key. Bird dogs use the Wikimedia [PTPioneer photograph](https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg), licensed CC BY 2.0; the UI links to the creator, source and license and identifies resizing/thumbnail cropping. Publisher license declarations are recorded, not presented as an independent rights audit.
+
+Home uses the curl photograph, every library row has a lazy-loaded photo, and every detail page has a full-image gallery. The helper displays a text fallback on loading failure and retries after reconnection. Detail images fit within their frame; library thumbnails are cropped. Photo controls say “Photo 1/2” rather than claiming that still frames prove complete rep boundaries. Kettlebell goblet-squat, walking-lunge and rotating-grip seated-curl variations are explicitly identified below their photos. The written guide variants and research scope are unchanged.
+
+All Free Exercise DB image URLs were checked through the web tool. The bridge's first image repeatedly timed out, so only its second image is used. The bird-dog source/credit/license were verified on Commons, but direct thumbnail retrieval could not be verified; its Special:FilePath URL requests a 640px image. Shell downloads and browser review remain blocked, so image rendering on actual devices is still pending. These external references are not bundled local assets and remain subject to provider availability.
+
+`node scripts/test-photos.mjs` checks coverage and credit/license metadata without making network requests. The public photos are UI content, not research training examples or RIR-labeled data.
+
+## Editing the design
+
+Page and component styles live in their JSX `className` attributes. Use Tailwind utilities directly rather than adding named CSS selectors or `@apply` component classes.
+
+- Edit a screen in `src/pages/` (for example, `Home.tsx`).
+- Edit navigation and the main layout in `src/App.tsx`.
+- Edit photo sizing in `src/components/ExercisePhoto.tsx`: `fill`, `thumbnail`, and `gallery` have separate class lists.
+- Change shared colors and the Sora font in the `@theme` block of `src/styles.css`. `bg-accent`, `bg-surface`, and `text-muted` use those values.
+- `p-5` changes padding, `gap-3` changes spacing, and `rounded-xl` changes corner size. `sm:` and `lg:` apply changes on larger screens. `aria-[pressed=true]:` and `aria-[current=page]:` style selected tabs and navigation.
+- Brackets preserve a specific design value, such as `text-[13px]` or `rounded-[22px]`; edit the number directly.
+
+Global CSS is limited to the theme, browser defaults, keyboard focus, disabled controls and reduced-motion support. Responsive layouts, camera overlays, forms and galleries use Tailwind classes alongside their markup.

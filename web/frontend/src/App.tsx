@@ -72,10 +72,10 @@ export function App() {
   };
   const openAccount = () => setAccountOpen(true);
   return (
-    <div className="app-shell">
+    <div className="max-w-400 m-auto min-h-dvh lg:grid lg:grid-cols-[225px_minmax(0,1fr)]">
       <a
         href="#main-content"
-        className="skip-link"
+        className="fixed -top-25 left-2.5 z-50 p-3 bg-accent text-background focus:top-2.5"
         onClick={(event) => {
           event.preventDefault();
           document.getElementById("main-content")?.focus();
@@ -83,51 +83,64 @@ export function App() {
       >
         Skip to content
       </a>
-      <aside className="desktop-sidebar">
-        <a className="brand" href="#home">
-          <span className="brand-mark">
-            <span />
-            <span />
-            <span />
+      <aside className="hidden lg:flex lg:flex-col lg:py-9.75 lg:px-6.75 lg:border-r lg:border-r-[#ffffff0f] lg:sticky lg:top-0 lg:h-dvh">
+        <a
+          className="inline-flex items-center text-[25px] font-bold tracking-[-1.2px]"
+          href="#home"
+        >
+          <span className="size-6 inline-flex items-center gap-0.75 mr-2.5">
+            <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
+            <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
+            <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
           </span>
-          replens<span className="brand-dot">.</span>
+          replens<span className="text-accent">.</span>
         </a>
-        <nav aria-label="Main navigation">
+        <nav
+          className="lg:grid lg:gap-2 lg:mt-12.5"
+          aria-label="Main navigation"
+        >
           {navigation.map((item) => (
             <a
+              className="group lg:min-h-12 lg:p-3.25 lg:rounded-[10px] lg:text-xs lg:flex lg:items-center lg:gap-3.25 lg:text-muted lg:aria-[current=page]:bg-[#f2b85b12] lg:aria-[current=page]:text-accent"
               key={item.id}
               href={`#${item.id}`}
               aria-current={route === item.id ? "page" : undefined}
             >
-              <Icon name={item.icon} />
+              <Icon className="lg:w-4.5 lg:h-4.5" name={item.icon} />
               {item.label === "Live" ? "Live session" : item.label}
-              <span className="nav-indicator" />
+              <span className="lg:w-1 lg:h-1 lg:rounded-full lg:ml-auto group-aria-[current=page]:bg-accent" />
             </a>
           ))}
         </nav>
       </aside>
-      <div className="workspace">
-        <header className="app-header">
-          <a className="brand" href="#home">
-            <span className="brand-mark">
-              <span />
-              <span />
-              <span />
+      <div className="min-w-0">
+        <header className="flex items-center justify-between py-4.5 px-5 pt-[max(18px,env(safe-area-inset-top))] border-b-0 sm:px-9 lg:py-7 xl:px-14">
+          <a
+            className="inline-flex items-center text-[25px] font-bold tracking-[-1.2px] lg:invisible"
+            href="#home"
+          >
+            <span className="size-6 inline-flex items-center gap-0.75 mr-2.5">
+              <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
+              <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
+              <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-5.75 nth-3:h-4.25" />
             </span>
-            replens<span className="brand-dot">.</span>
+            replens<span className="text-accent">.</span>
           </a>
-          <div className="header-actions">
+          <div className="flex items-center gap-3.5">
             <button
-              className="icon-button"
+              className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full"
               aria-label="Open account setup"
               onClick={openAccount}
             >
-              <Icon name="user" />
+              <Icon className="size-4.75" name="user" />
             </button>
           </div>
         </header>
         {offline && (
-          <div className="offline-banner" role="status">
+          <div
+            className="py-3 px-5.5 text-xs bg-[#f2b85b17] text-[#d8c59f]"
+            role="status"
+          >
             You’re offline. Previously loaded guides and camera preview remain
             available.
           </div>
@@ -135,7 +148,7 @@ export function App() {
         <main
           id="main-content"
           tabIndex={-1}
-          className="page-content"
+          className="p-[22px_20px_calc(100px+env(safe-area-inset-bottom))] max-w-300 m-auto outline-none sm:pt-10 sm:px-9 sm:pb-28 lg:pt-10.5 lg:px-9 lg:pb-11.25 xl:px-14"
           key={route}
         >
           {route === "home" && <Home />}
@@ -158,15 +171,19 @@ export function App() {
             />
           )}
         </main>
-        <nav className="mobile-nav" aria-label="Main navigation">
+        <nav
+          className="fixed bottom-0 left-0 right-0 z-10 flex bg-[#1b1e1af5] border-t border-t-[#ffffff10] p-[13px_12px_calc(13px+env(safe-area-inset-bottom))] backdrop-blur-lg lg:hidden"
+          aria-label="Main navigation"
+        >
           {navigation.map((item) => (
             <a
+              className="min-h-11 flex flex-1 flex-col items-center justify-center gap-1.75 text-[#959d8e] aria-[current=page]:text-accent"
               key={item.id}
               href={`#${item.id}`}
               aria-current={route === item.id ? "page" : undefined}
             >
-              <Icon name={item.icon} />
-              <span>{item.label}</span>
+              <Icon className="size-5.25" name={item.icon} />
+              <span className="text-[10px]">{item.label}</span>
             </a>
           ))}
         </nav>

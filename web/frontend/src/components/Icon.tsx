@@ -7,7 +7,6 @@ const paths = {
   guide: "M4 4h7v16H4Z M13 4h7v16h-7 M7 8h1 M16 8h1 M7 12h1 M16 12h1",
   history: "M3 11a9 9 0 1 1 2 7 M3 4v7h7 M12 7v5l3 2",
   user: "M16 7a4 4 0 1 1-8 0 4 4 0 0 1 8 0 M4 21v-2a8 8 0 0 1 16 0v2",
-  arrow: "M4 12h16 M14 6l6 6-6 6",
   back: "M20 12H4 M10 6l-6 6 6 6",
   chevron: "m9 5 7 7-7 7",
   close: "m6 6 12 12 M6 18 18 6",

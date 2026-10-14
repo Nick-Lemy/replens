@@ -31,3 +31,18 @@ pnpm dev
 Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. Run the services separately with `pnpm dev:frontend` and `pnpm dev:backend`. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
 The React app uses Vite and Tailwind CSS with browser rendering. The NestJS backend currently exposes only a health endpoint. The frontend includes a mobile PWA interface and camera preview/countdown; Better Auth, PostgreSQL integration, pose processing and RIR inference remain future implementation. Netlify settings live in `netlify.toml`; production API forwarding needs the actual VPS hostname.
+
+## Git checks and commit messages
+
+Activate the tracked Git hooks once per checkout, after installing dependencies:
+
+```bash
+pnpm hooks:install
+```
+
+- **Pre-commit:** checks staged changes for whitespace errors, then type-checks both web packages.
+- **Pre-push:** builds both web packages and runs available workspace tests (currently the frontend PWA and exercise-photo mapping checks).
+
+Hooks require pnpm on your terminal's PATH. They validate the current working files; stage the intended changes before committing. These checks do not evaluate the Python pilot or RIR model accuracy. Run them manually with `pnpm check`, `pnpm build`, and `pnpm test`.
+
+Use Conventional Commit messages: `type(scope): short description`. Common types are `feat` (new feature), `fix` (bug fix), `refactor` (code restructuring), `docs` (documentation), `test` (tests), and `chore` (tooling). For example: `feat(web): add exercise photo guides`. Hook activation is local to each checkout; `.githooks/` and the installer are versioned. The installer preserves any existing different `core.hooksPath` setting.

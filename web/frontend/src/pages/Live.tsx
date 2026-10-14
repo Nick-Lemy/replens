@@ -77,27 +77,29 @@ export function Live({
   };
   return (
     <>
-      <div className="page-heading live-heading">
+      <div className="mb-7 flex items-center justify-between lg:mb-8">
         <div>
-          <h1 className="page-title">Live session.</h1>
+          <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">
+            Live session.
+          </h1>
         </div>
         <a
-          className="icon-button"
+          className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full"
           href="#guide/two-arm-dumbbell-curl/setup"
           aria-label="Open camera setup guide"
         >
-          <Icon name="guide" />
+          <Icon className="size-4.75" name="guide" />
         </a>
       </div>
-      <div className="live-grid">
+      <div className="grid gap-5.5 lg:grid-cols-[minmax(0,1.25fr)_minmax(260px,0.85fr)] lg:items-start">
         <div>
-          <div className="camera-frame">
+          <div className="relative aspect-4/5 max-h-150 bg-[#232720] overflow-hidden rounded-[22px] border border-[#ffffff13] lg:max-h-142.5">
             <video
               ref={video}
               muted
               autoPlay
               playsInline
-              className={facing === "user" ? "mirrored" : ""}
+              className={`h-full w-full object-contain bg-[#1d211a] ${facing === "user" ? "-scale-x-100" : ""}`}
               onClick={() => {
                 void video.current
                   ?.play()
@@ -110,13 +112,13 @@ export function Live({
               }}
               aria-label="Live camera preview"
             />
-            <div className="camera-top">
-              <span className="camera-state">
+            <div className="absolute top-4.5 left-4.5 right-4.5 flex justify-between items-center">
+              <span className="text-foreground text-[11px] bg-[#14161399] py-2 px-2.75 rounded-lg">
                 {stream ? "Camera on" : "Camera off"}
               </span>
               {stream && (
                 <button
-                  className="icon-button"
+                  className="size-11 inline-flex items-center justify-center bg-[#14161399] border border-[#ffffff1a] rounded-full"
                   aria-label="Switch camera"
                   disabled={running || countdown !== null || busy}
                   onClick={() => {
@@ -125,23 +127,25 @@ export function Live({
                     void start(next);
                   }}
                 >
-                  <Icon name="flip" />
+                  <Icon className="size-4.75" name="flip" />
                 </button>
               )}
             </div>
             {!stream && (
-              <div className="camera-placeholder">
-                <div className="camera-symbol">
-                  <Icon name="camera" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
+                <div className="size-17.5 border border-[#68765a] rounded-3xl grid place-items-center mb-6.25">
+                  <Icon className="size-7.25 text-[#b9c5aa]" name="camera" />
                 </div>
-                <h2>Your set starts here.</h2>
-                <p>
+                <h2 className="text-[23px] tracking-[-0.03em]">
+                  Your set starts here.
+                </h2>
+                <p className="text-[13px] leading-[1.8] text-muted mt-3 mx-0 mb-6.75">
                   Set down your phone.
                   <br />
                   Keep both arms in the frame.
                 </p>
                 <button
-                  className="primary-button"
+                  className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] max-w-62.5"
                   disabled={busy}
                   onClick={() => {
                     setFinished(false);
@@ -150,10 +154,13 @@ export function Live({
                   }}
                 >
                   {busy ? "Waiting for camera…" : "Enable camera"}
-                  <Icon name="camera" />
+                  <Icon className="size-4.75" name="camera" />
                 </button>
                 {busy && (
-                  <button className="text-button" onClick={stop}>
+                  <button
+                    className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline"
+                    onClick={stop}
+                  >
                     Cancel
                   </button>
                 )}
@@ -161,93 +168,119 @@ export function Live({
             )}
             {stream && (
               <>
-                <span className="frame-corner top-left" />
-                <span className="frame-corner top-right" />
-                <span className="frame-corner bottom-left" />
-                <span className="frame-corner bottom-right" />
+                <span className="absolute size-5.75 border-[#e7ecc780] pointer-events-none top-[22%] left-[14%] border-t-2 border-l-2" />
+                <span className="absolute size-5.75 border-[#e7ecc780] pointer-events-none top-[22%] right-[14%] border-t-2 border-r-2" />
+                <span className="absolute size-5.75 border-[#e7ecc780] pointer-events-none bottom-[14%] left-[14%] border-b-2 border-l-2" />
+                <span className="absolute size-5.75 border-[#e7ecc780] pointer-events-none bottom-[14%] right-[14%] border-b-2 border-r-2" />
               </>
             )}
             {countdown !== null && countdown > 0 && (
-              <div className="countdown" role="status" aria-live="assertive">
+              <div
+                className="absolute inset-0 grid place-items-center text-[100px] bg-[#14161370] font-medium"
+                role="status"
+                aria-live="assertive"
+              >
                 {countdown}
               </div>
             )}
             {stream && (
-              <div className="camera-bottom">
-                <span>PREVIEW TIME</span>
-                <strong>{timeLabel(elapsed)}</strong>
+              <div className="absolute bottom-5 left-5.5 text-[#f5f5f0] py-2.5 px-3.5 bg-[#141613a6] rounded-[9px] flex gap-4 items-center">
+                <span className="text-[8px] tracking-[0.12em]">
+                  PREVIEW TIME
+                </span>
+                <strong className="text-xl font-normal tabular-nums">
+                  {timeLabel(elapsed)}
+                </strong>
               </div>
             )}
           </div>
           {(error || playbackError) && (
-            <p className="notice mt-4" role="alert">
+            <p
+              className="bg-[#f2b85b0a] text-[#c6cbbd] py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546] mt-4"
+              role="alert"
+            >
               {error || playbackError}
             </p>
           )}
-          <div className="session-metrics">
-            <div>
-              <span>Completed reps</span>
-              <strong>—</strong>
+          <div className="grid grid-cols-[1fr_1fr_1.2fr] gap-2.5 mt-4">
+            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
+              <span className="block text-[9px] text-muted min-h-6">
+                Completed reps
+              </span>
+              <strong className="block text-[30px] font-normal mt-1">—</strong>
             </div>
-            <div>
-              <span>Estimated reps left</span>
-              <strong>—</strong>
+            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
+              <span className="block text-[9px] text-muted min-h-6">
+                Estimated reps left
+              </span>
+              <strong className="block text-[30px] font-normal mt-1">—</strong>
             </div>
-            <div>
-              <span>Tracking</span>
-              <strong className="metric-status">Not connected</strong>
+            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
+              <span className="block text-[9px] text-muted min-h-6">
+                Tracking
+              </span>
+              <strong className="block text-xs font-normal mt-1 leading-[1.6]">
+                Not connected
+              </strong>
             </div>
           </div>
         </div>
-        <div className="live-sidebar">
-          <section className="surface-card">
-            <h2 className="card-title">Camera setup</h2>
-            <ul className="check-list">
+        <div className="grid gap-5 content-start">
+          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
+            <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18]">
+              Camera setup
+            </h2>
+            <ul className="grid gap-4.25 mt-6">
               {[
                 "Phone is steady",
                 "Both arms stay visible",
                 "Movement fits in the frame",
               ].map((label) => (
                 <li key={label}>
-                  <label>
-                    <input type="checkbox" />
+                  <label className="flex gap-3 items-center text-xs min-h-7 cursor-pointer">
+                    <input className="size-4.5" type="checkbox" />
                     {label}
                   </label>
                 </li>
               ))}
             </ul>
-            <p className="notice mt-5">
+            <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546] mt-5">
               Camera preview is available. Rep tracking and reps-left
               predictions are not connected yet.
             </p>
             {stream && (
               <div className="mt-5 grid gap-3">
                 {running ? (
-                  <button className="primary-button" onClick={end}>
+                  <button
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]"
+                    onClick={end}
+                  >
                     End preview
-                    <Icon name="close" />
+                    <Icon className="size-4.75" name="close" />
                   </button>
                 ) : countdown !== null ? (
                   <button
-                    className="secondary-button"
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03]"
                     onClick={() => setCountdown(null)}
                   >
                     Cancel countdown
                   </button>
                 ) : (
                   <button
-                    className="primary-button"
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]"
                     onClick={() => {
                       setFinished(false);
                       setCountdown(countdownSeconds);
                     }}
                   >
                     Start camera preview
-                    <Icon name="arrow" />
                   </button>
                 )}
                 {!running && (
-                  <button className="text-button" onClick={stop}>
+                  <button
+                    className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline"
+                    onClick={stop}
+                  >
                     Turn off camera
                   </button>
                 )}
@@ -255,20 +288,29 @@ export function Live({
             )}
           </section>
           {finished && (
-            <section className="surface-card" role="status">
-              <p className="description">Preview complete</p>
-              <h2 className="card-title mt-3">{timeLabel(elapsed)}</h2>
-              <p className="description mt-3">
+            <section
+              className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25"
+              role="status"
+            >
+              <p className="text-muted text-sm leading-[1.75]">
+                Preview complete
+              </p>
+              <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-3">
+                {timeLabel(elapsed)}
+              </h2>
+              <p className="text-muted text-sm leading-[1.75] mt-3">
                 No video or exercise results were saved.
               </p>
-              <a href="#home" className="inline-link mt-4">
+              <a
+                href="#home"
+                className="inline-flex items-center gap-3.5 text-xs font-semibold text-accent mt-4"
+              >
                 Back to home
-                <Icon name="arrow" />
               </a>
             </section>
           )}
-          <p className="quiet-note">
-            <Icon name="shield" />
+          <p className="flex items-start gap-2.5 text-[11px] text-muted leading-[1.7] mt-6.25">
+            <Icon className="size-4 mt-0.5" name="shield" />
             This preview uses your camera on this device. It does not save or
             upload video. Leaving this page stops the camera.
           </p>

@@ -182,3 +182,21 @@ Home now focuses on the exercise and next session, with a guide link and recent 
 The Guide page now includes 14 exercises. Search and body-area filters help users find one, then open its equipment, muscle focus, steps and form tips. The instructions link to technique references. This is educational content, not another trained model.
 
 A **catalog** is a structured list of entries. Our TypeScript catalog gives each exercise a stable ID and its guide content. Only simultaneous two-arm curls link to the current camera preview. Supporting another exercise in live analysis will also require suitable data, a way to measure its movements and evaluation of the resulting predictions. Adding a guide alone does not do that.
+
+## Real exercise photographs
+
+The home card, exercise list and guide detail pages now use photos of people exercising. A separate catalog maps each guide ID to photo URLs and source/license information. Most photos come from Free Exercise DB's open JSON/image collection; the bird-dog photo comes from Wikimedia Commons with author and license links. These are educational pictures, not research examples with RIR labels.
+
+**Lazy loading** means the browser waits to load off-screen pictures until they are needed, reducing work on phones. If a photo cannot load, the app shows a text message rather than a cartoon or an unrelated exercise. Photos are hosted externally; the current service worker caches the app interface, not these pictures. Some photos show a related variation, which is identified in the guide.
+
+### Changing the web app’s appearance
+
+A **Tailwind utility** is a small styling instruction in a component’s `className`. For example, `p-5` adds padding, `bg-accent` uses our shared amber color, and `lg:grid-cols-2` uses two columns on larger screens. Page and component styling now sits beside its JSX instead of in separate named CSS rules.
+
+Edit individual screens in `web/frontend/src/pages/`. Edit shared colors and the font in the `@theme` block of `web/frontend/src/styles.css`. That CSS file contains only the theme and global browser/accessibility rules. See the frontend README’s “Editing the design” section for examples. This is an interface refactor; it adds no pose tracking or RIR model.
+
+### Git hooks and commit labels
+
+A **Git hook** runs a check automatically before a Git action. Our pre-commit hook checks staged whitespace and TypeScript. Our pre-push hook builds the frontend/backend and runs the existing frontend tests. These checks help catch code problems; they do not prove the RIR model is accurate. Run `pnpm hooks:install` once in each checkout to activate them.
+
+A **Conventional Commit** starts with a short label: `feat` for a feature, `fix` for a bug fix, `refactor` for code cleanup, or `chore` for tooling. For example, `feat(web): add exercise photo guides`.
