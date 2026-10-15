@@ -200,3 +200,20 @@ Edit individual screens in `web/frontend/src/pages/`. Edit shared colors and the
 A **Git hook** runs a check automatically before a Git action. **Husky** connects our `.husky/` scripts to Git. Our pre-commit hook checks staged whitespace and TypeScript. Our pre-push hook builds the frontend/backend and runs the existing frontend tests. These checks help catch code problems; they do not prove the RIR model is accurate. `pnpm install` activates the hooks when install scripts are enabled; `pnpm hooks:install` activates them manually. Setup is skipped in CI and production builds.
 
 A **Conventional Commit** starts with a short label: `feat` for a feature, `fix` for a bug fix, `refactor` for code cleanup, or `chore` for tooling. For example, `feat(web): add exercise photo guides`.
+
+### Where the proposed model will live
+
+The latest deployment choice puts the exported model file on the Kigali VPS alongside the backend services. Caddy delivers the file to the phone over HTTPS. Netlify serves the React frontend. After loading the model, the phone browser is proposed to run predictions through ONNX Runtime Web. **Hosting** means making the file available for download; **inference** means using the model to calculate a prediction. Storing the file on the VPS does not make inference run there. Compatibility and phone performance still need testing.
+
+For the proposal changes, see `docs/PROPOSAL_REVISION_GUIDE.md`. The proposal's existing title is preserved; the operational measurements are camera-derived speed and movement instability, with RIR as the prediction target. Research ground-truth labels and volunteer videos remain separate from normal app summaries.
+## Proposed experiment clarified on 15 October 2026
+
+The final proposal text now specifies **Ridge regression** for the main comparison and **Random Forest regression** for a secondary comparison. These are plans; no RIR predictor has been trained or validated yet.
+
+- Ridge predicts a number using a weighted combination of the inputs. A penalty discourages very large weights, which can help limit fitting to noise.
+- A Random Forest averages predictions from several decision trees. A tree follows simple questions about the input measurements to reach a prediction.
+- Each algorithm gets two versions: mean/peak lifting speed only, and those same inputs plus movement instability. Both versions must use the same eligible reps and held-out participants.
+- Hyperparameters are settings chosen before fitting, such as Ridge's penalty strength or a tree's maximum depth. Choose them using training participants only. The held-out participant is reserved for evaluation.
+- The proposed first experiment uses features available by the end of the current rep. It does not use future reps or final set length as inputs.
+
+This clarifies the proposed training stage; it does not change the current pilot's measurements or establish that the combined model is better. See `docs/PROPOSAL_SUBMISSION_TEXT.md` for the proposed grids and source documentation.
