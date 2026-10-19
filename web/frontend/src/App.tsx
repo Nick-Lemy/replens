@@ -8,6 +8,7 @@ import { History } from "./pages/History";
 import { Profile, type Preferences } from "./pages/Profile";
 import { useAuth } from "./features/auth/AuthProvider";
 import { useInstall } from "./hooks/useInstall";
+import { EmailAccessLink } from "./pages/EmailAccessLink";
 
 const navigation: { id: string; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -16,10 +17,18 @@ const navigation: { id: string; label: string; icon: IconName }[] = [
   { id: "history", label: "History", icon: "history" },
   { id: "profile", label: "Profile", icon: "user" },
 ];
-function readRoute() {
-  const hash = window.location.hash.slice(1).split("/")[0];
-  return navigation.some((item) => item.id === hash) ? hash : "home";
+type Route = "home" | "guide" | "live" | "history" | "profile" | "verify-email" | "reset-password";
+function consumeRoute(rawHash: string): { route: Route; token: string } {
+  const [rawPath, query = ""] = rawHash.slice(1).split("?", 2);
+  const route = rawPath.split("/")[0];
+  if (route === "verify-email" || route === "reset-password") {
+    const token = new URLSearchParams(query).get("token") ?? "";
+    if (query) window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}#${route}`);
+    return { route, token };
+  }
+  return { route: navigation.some((item) => item.id === route) ? route as Route : "home", token: "" };
 }
+const initialLink = consumeRoute(window.location.hash);
 function readPreferences(): Preferences {
   try {
     const value = JSON.parse(
@@ -37,7 +46,8 @@ function readPreferences(): Preferences {
 }
 
 export function App() {
-  const [route, setRoute] = useState(readRoute);
+  const [route, setRoute] = useState<Route>(initialLink.route);
+  const [linkToken, setLinkToken] = useState(initialLink.token);
   const accountTrigger = useRef<HTMLElement | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [preferences, setPreferences] = useState(readPreferences);
@@ -47,7 +57,9 @@ export function App() {
 
   useEffect(() => {
     const changed = () => {
-      setRoute(readRoute());
+      const next = consumeRoute(window.location.hash);
+      setRoute(next.route);
+      setLinkToken(next.token);
       setAccountOpen(false);
       window.scrollTo(0, 0);
     };
@@ -62,7 +74,7 @@ export function App() {
     };
   }, []);
   useEffect(() => {
-    document.title = `${navigation.find((item) => item.id === route)?.label ?? "Home"} · RepLens`;
+    document.title = `${navigation.find((item) => item.id === route)?.label ?? (route === "verify-email" ? "Confirm email" : route === "reset-password" ? "Reset password" : "Home")} · RepLens`;
   }, [route]);
 
   const updatePreferences = (next: Preferences) => {
@@ -182,6 +194,7 @@ export function App() {
               installed={installer.installed}
             />
           )}
+          {(route === "verify-email" || route === "reset-password") && <EmailAccessLink key={`${route}:${linkToken}`} kind={route} token={linkToken} openAccount={() => openAccount()} />}
         </main>
         <nav
           className="fixed bottom-0 left-0 right-0 z-10 flex bg-[#1b1e1af5] border-t border-t-[#ffffff10] p-[13px_12px_calc(13px+env(safe-area-inset-bottom))] backdrop-blur-lg lg:hidden"
