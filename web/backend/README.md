@@ -1,6 +1,6 @@
 # RepLens API
 
-NestJS + TypeScript, Better Auth 1.7.11 and PostgreSQL through Prisma 7.10.1. Accounts are real persisted records. Email verification and password reset use Resend when configured; profile edits, history and ML remain outside this API.
+NestJS + TypeScript, Better Auth 1.7.11 and PostgreSQL through Prisma 7.10.1. Accounts are real persisted records. Email verification and password reset use Resend when configured; history and ML remain outside this API.
 
 ## Local setup
 
@@ -33,12 +33,16 @@ Use `credentials: 'include'` on browser requests. Auth errors use `{code,message
 | `POST /api/auth/sign-out` | `{}` | 200; database session revoked |
 | `GET /api/me` | — | `{user:{id,name,email,emailVerified,image,createdAt,updatedAt}}`; no session secrets; 401 if absent/expired |
 | `GET /api/auth/get-session` | — | Native Better Auth session response, or null |
+| `POST /api/auth/update-user` | `{name}` | Authenticated; 200 `{status:true}`, updates only the account name |
+| `POST /api/auth/delete-user` | `{password}` | Authenticated; requires the current password, deletes the signed-in account and clears its session |
 | `POST /api/auth/send-verification-email` | `{email,callbackURL?}` | Authenticated; can send only to the signed-in account's address |
 | `GET /api/auth/verify-email?token=...` | — | Verifies a valid token; the client should ask the user to confirm before calling this endpoint |
 | `POST /api/auth/request-password-reset` | `{email,redirectTo?}` | Generic acknowledgment for known and unknown addresses; it means the request was processed, not that delivery succeeded |
 | `POST /api/auth/reset-password` | `{token,newPassword}` | Resets a password with a valid token; revokes all account sessions |
 
-Names are trimmed, 1–80 characters. Emails must be valid. Passwords are 12–128 characters, hashed by Better Auth. Invalid input returns 400; duplicate signup returns 422. Signup keeps its existing auto-session behavior and does not send email; existing unverified accounts can still sign in. Email verification is an explicit signed-in action. A valid confirmation token updates `emailVerified`; verification links expire after one hour. Password reset links expire after 15 minutes and can be used once. Reset emails use a fixed configured frontend origin, and supplied redirect values must resolve to a configured frontend origin.
+Names are trimmed, 1–80 characters. Profile updates accept exactly `{name}`; other fields, including email, verification state and image, are rejected. Emails must be valid. Passwords are 12–128 characters, hashed by Better Auth. Invalid input returns 400; duplicate signup returns 422. Signup keeps its existing auto-session behavior and does not send email; existing unverified accounts can still sign in. Email verification is an explicit signed-in action. A valid confirmation token updates `emailVerified`; verification links expire after one hour. Password reset links expire after 15 minutes and can be used once. Reset emails use a fixed configured frontend origin, and supplied redirect values must resolve to a configured frontend origin.
+
+Account deletion accepts exactly the current password. Better Auth checks that password against the signed-in user's credential account; fresh-session status alone, missing passwords, callback URLs, deletion tokens and user IDs cannot authorize deletion. On success, Better Auth deletes the account and its credentials/sessions and clears the session cookie. Pending password-reset verification records for that user are also removed. The current API has no history or study-data tables.
 
 Set both `RESEND_API_KEY` and `EMAIL_FROM` to enable outbound email. Leave both blank for local account development; verification-send and reset-request routes then return 503 uniformly without looking up account addresses. Previously issued links can still be confirmed or consumed during a provider outage because token operations require the auth secret and database, not Resend. The key is used only by the backend. Resend send failures on verification return 503. Password-reset requests keep the same generic acknowledgment for known/unknown addresses, including when provider delivery fails; delivery failures are recorded with a generic server log message that contains no address, token, key, or request data. Do not treat the acknowledgment as proof that an email was sent. Real Resend delivery requires a configured sender/domain and credentials and has not been verified in this environment.
 

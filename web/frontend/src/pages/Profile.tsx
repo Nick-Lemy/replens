@@ -1,6 +1,8 @@
 import type { MouseEvent } from "react";
 import { useAuth } from "../features/auth/AuthProvider";
 import { EmailVerification } from "../features/auth/EmailVerification";
+import { ProfileNameEditor } from "../features/profile/ProfileNameEditor";
+import { DeleteAccountDialog } from "../features/profile/DeleteAccountDialog";
 import { Icon } from "../components/Icon";
 import type { Facing } from "../hooks/useCamera";
 
@@ -44,7 +46,15 @@ export function Profile({
           </p>
           {user && (user.emailVerified
             ? <p className="mt-4 text-xs text-muted">Email status: <span className="text-foreground">Verified</span></p>
-            : <EmailVerification key={user.id} email={user.email} />)}
+            : <EmailVerification key={`verification:${user.id}`} email={user.email} />)}
+          {user && (
+            <div key={`profile:${user.id}`} className="mt-2">
+              <ProfileNameEditor user={user} refresh={refresh} disabled={pending} />
+              <div className="border-t border-[#ffffff12] mt-4 pt-3">
+                <DeleteAccountDialog refresh={refresh} disabled={pending} />
+              </div>
+            </div>
+          )}
           <button
             className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6"
             disabled={pending || status === "loading"}
@@ -136,8 +146,9 @@ export function Profile({
         <div>
           <h2 className="text-sm font-medium">Camera privacy</h2>
           <p className="text-xs leading-[1.8] text-muted mt-2.25">
-            This preview does not upload or store camera footage. Only your
-            camera preferences are saved on this device. Accounts use a secure session cookie. Saved session data and account-deletion controls are not available yet.
+            This preview does not upload or store camera footage. Camera
+            preferences stay in this browser. You can permanently remove your
+            account and active sessions from Profile.
           </p>
         </div>
       </section>

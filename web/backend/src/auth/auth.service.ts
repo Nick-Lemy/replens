@@ -14,6 +14,13 @@ function isTrustedRedirect(value: unknown, frontendOrigins: string[]): boolean {
   } catch { return false; }
 }
 
+function normalizedName(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim() || value.trim().length > 80) {
+    throw new APIError('BAD_REQUEST', { code: 'INVALID_NAME', message: 'Name must contain 1–80 characters.' });
+  }
+  return value.trim();
+}
+
 @Injectable()
 export class AuthService {
   readonly auth;
@@ -26,6 +33,14 @@ export class AuthService {
       secret: config.authSecret,
       database: prismaAdapter(database, { provider: 'postgresql' }),
       trustedOrigins: config.frontendOrigins,
+      user: {
+        deleteUser: {
+          enabled: true,
+          beforeDelete: async user => {
+            await database.verification.deleteMany({ where: { identifier: { startsWith: 'reset-password:' }, value: user.id } });
+          },
+        },
+      },
       emailAndPassword: {
         enabled: true,
         minPasswordLength: 12,
@@ -57,15 +72,26 @@ export class AuthService {
         },
       } } : {}),
       session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, cookieCache: { enabled: false } },
-      rateLimit: { enabled: true, window: 60, max: 30, customRules: { '/sign-up/email': { window: 60, max: 20 }, '/sign-in/email': { window: 60, max: 10 }, '/send-verification-email': { window: 60, max: 5 }, '/verify-email': { window: 60, max: 10 }, '/request-password-reset': { window: 60, max: 5 }, '/reset-password': { window: 60, max: 5 } } },
+      rateLimit: { enabled: true, window: 60, max: 30, customRules: { '/sign-up/email': { window: 60, max: 20 }, '/sign-in/email': { window: 60, max: 10 }, '/send-verification-email': { window: 60, max: 5 }, '/verify-email': { window: 60, max: 10 }, '/request-password-reset': { window: 60, max: 5 }, '/reset-password': { window: 60, max: 5 }, '/update-user': { window: 60, max: 10 }, '/delete-user': { window: 60, max: 3 } } },
       advanced: { ipAddress: { ipAddressHeaders: ['x-replens-client-ip'] }, useSecureCookies: config.production, defaultCookieAttributes: { httpOnly: true, sameSite: 'lax' } },
       hooks: { before: createAuthMiddleware(async context => {
         if (context.path === '/sign-up/email') {
-          const name = context.body?.name;
-          if (typeof name !== 'string' || !name.trim() || name.trim().length > 80) {
-            throw new APIError('BAD_REQUEST', { code: 'INVALID_NAME', message: 'Name must contain 1–80 characters.' });
+          context.body.name = normalizedName(context.body?.name);
+        }
+        if (context.path === '/update-user') {
+          const body = context.body;
+          const fields = body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
+          if (fields.length !== 1 || fields[0] !== 'name') {
+            throw new APIError('BAD_REQUEST', { code: 'PROFILE_FIELDS_NOT_ALLOWED', message: 'Only the account name can be updated.' });
           }
-          context.body.name = name.trim();
+          body.name = normalizedName(body.name);
+        }
+        if (context.path === '/delete-user') {
+          const body = context.body;
+          const fields = body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
+          if (fields.length !== 1 || fields[0] !== 'password' || typeof body.password !== 'string' || body.password.length === 0) {
+            throw new APIError('BAD_REQUEST', { code: 'PASSWORD_REQUIRED', message: 'Enter your current password to delete the account.' });
+          }
         }
         if (['/sign-up/email', '/send-verification-email', '/request-password-reset'].includes(context.path)) {
           const target = context.path === '/request-password-reset' ? context.body?.redirectTo : context.body?.callbackURL;
