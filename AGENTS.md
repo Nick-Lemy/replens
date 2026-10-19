@@ -6,16 +6,22 @@
 - Branches: stable `main`, integration `dev`, `ft/<feature>-backend` and `ft/<feature>-frontend`. No release branches. Use isolated worktrees for agents. Keep PRs scoped to the feature and record progress in `SPRINT.md`.
 - Open `dev` → `main` only after the feature is verified. Never merge into `main` or begin the next feature without Nick's explicit approval. Synchronize `dev` with approved `main` before the next feature.
 - No mock application data or simulated successful APIs. Synthetic fixtures belong only in isolated automated tests. Preserve existing UI and functionality; keep comments/dependencies/abstractions necessary and code modular.
+- Nick's latest direction: defer new automated test implementation until after the sprints. Preserve existing hooks/CI checks, review changes independently and perform targeted smoke checks. Report unverified flows instead of claiming new coverage.
+- Agent preferences: Main Sol 6.1 Medium; implementation subagents Terra Medium if available, otherwise Luna Medium. Use Luna Low only for necessary narrow exploration. Verify newly spawned agents' runtime metadata; reuse existing contexts when practical and avoid broad repeated scans.
 - Sprint 1 implements real accounts/session access only. Live rep counting is a later feature that can ship before the data-dependent RIR models; never fabricate predictions.
 
 ## Sprint 1 implementation
 
-- Backend PR #1 and frontend PR #2 were independently reviewed, corrected, tested and merged into `dev`. The final merged feature passed 30 tests plus workspace checks/builds; see `SPRINT.md`. `main` remains unchanged pending Nick's explicit review approval. No next feature is authorized yet.
+- Backend PR #1 and frontend PR #2 were independently reviewed, corrected, tested and merged into `dev`. The final merged feature passed 30 tests plus workspace checks/builds; see `SPRINT.md`. Nick merged PR #3 into `main` on 19 October 2026; `dev` was synchronized before he authorized Feature 2 (email verification/password reset).
 - Better Auth now persists accounts and cookie sessions through Prisma/PostgreSQL. API: signup/signin/signout under `/api/auth`, protected `GET /api/me`, and existing health endpoint. Other auth operations are explicitly unavailable. Passwords are hashed; production cookies are Secure, HttpOnly and SameSite=Lax, with trusted origins, request bounds, IP rate limits and no-store responses.
 - React's `features/auth/` separates API requests and account/session state. The existing dialog submits real credentials; Profile shows server-confirmed identity/signout. No account tokens or credentials enter localStorage or PWA caches. Guest guides/camera remain available; history is still empty, with no pose/rep/RIR pipeline in the web app.
 - Dependencies and migrations are committed; Prisma generates its ignored client before check/build/dev. Use Node 24 LTS and root pnpm install. Backend startup now needs the ignored environment file, a unique auth secret and migrated PostgreSQL; see `web/backend/README.md`. Its Compose file is a local database only.
 - Database integration and browser tests are separate required CI gates, beyond the default workspace unit/cache checks. They require a migrated disposable `TEST_DATABASE_URL` ending in `_test`, create synthetic test accounts and clean them up. Playwright uses dedicated ports 3123/4273 and a test-only camera fixture. Browser screenshots/traces stay ignored.
 - Deployment and physical-phone compatibility remain unverified. Frontend requests currently use same-origin `/api`; production needs a verified Netlify proxy or a reviewed client/origin configuration. Do not assume unrelated Netlify/VPS domains support reliable cookie sessions. Email verification/recovery, profile edits/deletion, saved sessions, rep counting and ML are deferred.
+
+## Feature 2 implementation
+
+- Feature 2 uses Resend's HTTP API for explicit authenticated email verification and password reset. Nick will add `RESEND_API_KEY`/`EMAIL_FROM` later; both must be set together, and no key belongs in Git/frontend code. Outbound mail actions return 503 when unconfigured; existing signin/signup still work. Verification links last one hour; native reset tokens last 15 minutes, are consumed once and revoke account sessions. Public reset acknowledgment is conditional, not delivery proof. Frontend link tokens stay in memory and are removed from the URL; successful API responses must be JSON. New automated coverage is deferred; provider delivery/successful email round trips remain unverified. See `SPRINT.md` and the backend/frontend READMEs for review state and setup.
 
 ## Earlier project history
 
