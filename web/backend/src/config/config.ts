@@ -10,6 +10,8 @@ export interface AppConfig {
   authUrl: string;
   frontendOrigins: string[];
   trustedProxyCidrs: string[];
+  resendApiKey?: string;
+  emailFrom?: string;
 }
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -40,5 +42,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   validateOrigin(authUrl);
   if (!frontendOrigins.length) throw new Error('FRONTEND_ORIGINS must contain an allowed origin');
   frontendOrigins.forEach(validateOrigin);
-  return { port, host: env.HOST ?? '127.0.0.1', production, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs };
+  const resendApiKey = env.RESEND_API_KEY?.trim();
+  const emailFrom = env.EMAIL_FROM?.trim();
+  if (Boolean(resendApiKey) !== Boolean(emailFrom)) throw new Error('RESEND_API_KEY and EMAIL_FROM must be configured together');
+  return { port, host: env.HOST ?? '127.0.0.1', production, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
 }
