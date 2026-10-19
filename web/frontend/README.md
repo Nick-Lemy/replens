@@ -91,3 +91,24 @@ Page and component styles live in their JSX `className` attributes. Use Tailwind
 - Brackets preserve a specific design value, such as `text-[13px]` or `rounded-[22px]`; edit the number directly.
 
 Global CSS is limited to the theme, browser defaults, keyboard focus, disabled controls and reduced-motion support. Responsive layouts, camera overlays, forms and galleries use Tailwind classes alongside their markup.
+
+## Accounts (Sprint 1)
+
+The existing account dialog now calls the real NestJS/Better Auth API. `features/auth/api.ts` owns HTTP communication; `AuthProvider` owns session restoration and state. Profile shows the actual account name/email and signout. Guests can still browse guides and use camera preview. History remains unavailable until its later feature; no fabricated summaries are shown.
+
+Requests use same-origin `/api`, credentials included, and `cache: no-store`. Session cookies are HttpOnly; no account tokens or credentials enter browser storage. The PWA shell cache continues to bypass API requests. A failed/expired session read clears the displayed identity; failed requests show a retry state. Request generations prevent older responses overwriting newer authentication state. Email verification/recovery, profile editing, deletion and saved sessions are not implemented in this feature.
+
+Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production must provide the same-origin API proxy or an explicitly reviewed same-site deployment; Netlify-to-VPS cookie/domain setup remains pending.
+
+### Browser verification
+
+Run migrations against a dedicated disposable PostgreSQL database ending in `_test`, build the backend, then:
+
+```sh
+DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @replens/backend db:migrate
+pnpm --filter @replens/backend build
+pnpm --filter @replens/frontend exec playwright install chromium
+pnpm --filter @replens/frontend test:e2e
+```
+
+`TEST_DATABASE_URL` is required. The suite starts its own NestJS on port 3123 and Vite on port 4273, uses the real API/database, creates isolated test accounts and removes those accounts afterward. It verifies real signup/signin/signout, cookie restoration, expired sessions, invalid credentials, validation, dialog Escape/focus, mobile fit, network recovery stale-response protection, and camera-track cleanup on navigation/backgrounding. Network interruption/delayed-response cases are isolated failure tests; successful authentication is never simulated. Screenshots/traces remain ignored local artifacts. Chromium phone emulation does not establish real iPhone/Android hardware or production deployment compatibility.

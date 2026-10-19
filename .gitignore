@@ -26,3 +26,7 @@ coverage/
 docs/*
 
 web/backend/src/generated/
+
+# Browser test artifacts
+**/test-results/
+**/playwright-report/

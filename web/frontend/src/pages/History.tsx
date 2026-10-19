@@ -1,6 +1,8 @@
+import { useAuth } from "../features/auth/AuthProvider";
 import { Icon } from "../components/Icon";
 
 export function History({ openAccount }: { openAccount: () => void }) {
+  const { status } = useAuth();
   return (
     <>
       <div className="mb-7 lg:mb-8">
@@ -21,7 +23,7 @@ export function History({ openAccount }: { openAccount: () => void }) {
           Explore camera setup
         </a>
       </section>
-      <button
+      {status === "guest" && <button
         className="flex items-center gap-[15px] p-[21px] bg-surface border border-[#ffffff08] rounded-[18px] mt-6 w-full text-left"
         onClick={openAccount}
       >
@@ -31,10 +33,10 @@ export function History({ openAccount }: { openAccount: () => void }) {
         <div>
           <h2 className="font-semibold">Keep your progress with you</h2>
           <p className="text-sm text-muted mt-1">
-            Account access is coming next
+            Sign in or create an account
           </p>
         </div>
-      </button>
+      </button>}
     </>
   );
 }
