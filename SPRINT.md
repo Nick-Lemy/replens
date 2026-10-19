@@ -17,11 +17,11 @@ Scope approved: real email/password signup, signin, signout, current user and co
 
 | Stage | Owner | Status | Branch / PR |
 |---|---|---|---|
-| Backend | Backend Engineer | Implementing | `ft/accounts-backend`; PR pending |
-| Backend review | Lead | Waiting | Must pass before frontend implementation |
-| Frontend | Frontend Engineer | Read-only preparation | Branch not created; waits for backend merge |
-| Integration verification | Lead | Waiting | Real PostgreSQL + browser workflow |
-| Human review | Nick | Not ready | `dev` → `main` PR pending |
+| Backend | Backend Engineer | Merged to `dev` | `ft/accounts-backend`; [PR #1](https://github.com/Nick-Lemy/replens/pull/1) |
+| Backend review | Lead | Passed | Code review, separate real database tests and GitHub CI; merged at `2e13447` |
+| Frontend | Frontend Engineer | Reviewed and merged to `dev` | `ft/accounts-frontend`; [PR #2](https://github.com/Nick-Lemy/replens/pull/2), merge `7e43f65` |
+| Integration verification | Lead | Passed | Merged `dev`: real PostgreSQL + browser workflow |
+| Human review | Nick | Awaiting explicit approval | `dev` → `main`; no merge authorized yet |
 
 ## Verification baseline
 
@@ -36,4 +36,10 @@ Sprint 0: both TypeScript checks and production builds passed; two existing fron
 
 ## Remaining gates
 
-Backend tests/review/merge → frontend implementation/tests/review/merge → independent end-to-end verification → PR to `main` → stop for human approval.
+PR to `main` → stop for human approval. No next feature until approved and merged.
+
+Backend verification: workspace checks/builds, five configuration tests, two existing frontend tests and 15 PostgreSQL integration tests passed independently. Migration applied to a separate disposable database; signup hashing, restart persistence, session revocation/expiry, origin validation, request-size bounds and no-store responses checked. GitHub application CI and GitGuardian passed. Review comment records requested corrections. No production domain/deployment or phone-device claim.
+
+Final integration checkpoint (19 October 2026): merged `dev` passed both workspace checks/builds and all 30 tests: five configuration, two public-cache/photo, 15 real database integration, seven real API/browser workflows and one isolated stalled-body timeout test. Lead independently reviewed both PRs, requested corrections and re-reviewed them. Browser coverage includes signup/signin/signout, reload, expiry, invalid credentials, network recovery, stale-response protection, modal validation/focus/mobile fit and camera-track cleanup. Reviewed the mobile Profile screenshot. Both feature PRs passed GitHub CI and GitGuardian before merge.
+
+Remaining limitations: production Netlify/API proxy and cookie domains, physical iPhone/Android behaviour and PWA installation need deployment/device checks. Email verification/recovery, profile edits/deletion, history persistence, live counts and RIR remain deferred. No unresolved implementation blocker in this feature.
