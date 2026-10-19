@@ -1,0 +1,40 @@
+name: Application checks
+on:
+  pull_request:
+    branches: [dev, main]
+  push:
+    branches: [dev, main]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: replens
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: replens_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U replens -d replens_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      CI: 'true'
+      HUSKY: '0'
+      DATABASE_URL: postgresql://replens:test-only-password@localhost:5432/replens_test
+      TEST_DATABASE_URL: postgresql://replens:test-only-password@localhost:5432/replens_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check
+      - run: pnpm build
+      - run: pnpm test
+      - run: pnpm --filter @replens/backend db:migrate
+      - run: pnpm --filter @replens/backend test:integration

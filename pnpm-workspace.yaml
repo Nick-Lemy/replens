@@ -1,3 +1,16 @@
 packages:
   - web/frontend
   - web/backend
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+# Exact Better Auth release verified against official 1.7.11 docs; keep integrity-locked versions.
+minimumReleaseAgeExclude:
+  - '@better-auth/core@1.7.11'
+  - '@better-auth/drizzle-adapter@1.7.11'
+  - '@better-auth/kysely-adapter@1.7.11'
+  - '@better-auth/memory-adapter@1.7.11'
+  - '@better-auth/mongo-adapter@1.7.11'
+  - '@better-auth/prisma-adapter@1.7.11'
+  - '@better-auth/telemetry@1.7.11'
+  - better-auth@1.7.11
