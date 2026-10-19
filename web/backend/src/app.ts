@@ -18,6 +18,7 @@ export async function createApp(config: AppConfig) {
     ['/api/auth/sign-out', 'POST'], ['/api/auth/get-session', 'GET'],
     ['/api/auth/send-verification-email', 'POST'], ['/api/auth/verify-email', 'GET'],
     ['/api/auth/request-password-reset', 'POST'], ['/api/auth/reset-password', 'POST'],
+    ['/api/auth/update-user', 'POST'], ['/api/auth/delete-user', 'POST'],
   ]);
   app.use((request: express.Request, response: express.Response, next: express.NextFunction) => {
     if (/^\/api\/(auth(?:\/|$)|me\/?$)/i.test(request.path)) response.setHeader('Cache-Control', 'no-store');
