@@ -121,9 +121,9 @@ test('expired database sessions are rejected', async () => {
   await pool.query('UPDATE sessions SET "expiresAt" = $1 WHERE "userId" IN (SELECT id FROM users WHERE email = $2)', [new Date(0), email]);
   assert.equal((await request('/api/me', undefined, { Cookie: cookie })).status, 401);
 });
-test('recovery and verification are explicitly unavailable', async () => {
-  assert.equal((await request('/api/auth/request-password-reset', { email })).status, 404);
-  assert.equal((await request('/api/auth/send-verification-email', { email })).status, 404);
+test('recovery and verification report unavailable without Resend configuration', async () => {
+  assert.equal((await request('/api/auth/request-password-reset', { email })).status, 503);
+  assert.equal((await request('/api/auth/send-verification-email', { email })).status, 503);
 });
 test('rate limiting rejects repeated failed signin requests', async () => {
   let response;
