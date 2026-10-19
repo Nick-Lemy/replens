@@ -1,0 +1,125 @@
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { AccountError, deleteAccount } from "../auth/api";
+
+export function DeleteAccountDialog({ refresh, disabled = false }: {
+  refresh: () => Promise<void>;
+  disabled?: boolean;
+}) {
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (open && dialog && !dialog.open) dialog.showModal();
+    if (!open && dialog?.open) dialog.close();
+  }, [open]);
+
+  const close = () => {
+    if (pending) return;
+    setOpen(false);
+    setError("");
+  };
+
+  const confirmDeletion = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (pending || disabled) return;
+    const form = event.currentTarget;
+    const password = String(new FormData(form).get("password") ?? "");
+    setPending(true);
+    setError("");
+
+    try {
+      await deleteAccount(password);
+      form.reset();
+      await refresh();
+      setOpen(false);
+    } catch (failure) {
+      form.reset();
+      if (failure instanceof AccountError && failure.status === 401) {
+        await refresh();
+        return;
+      }
+      setError(failure instanceof Error ? failure.message : "Your account could not be deleted. Please try again.");
+    } finally {
+      setPending(false);
+    }
+  };
+
+  return (
+    <>
+      <button
+        type="button"
+        disabled={disabled}
+        className="min-h-11 text-xs text-[#d7a4a0] underline underline-offset-4 disabled:opacity-60"
+        onClick={(event) => {
+          returnFocusRef.current = event.currentTarget;
+          setError("");
+          setOpen(true);
+        }}
+      >
+        Delete account
+      </button>
+      <dialog
+        ref={dialogRef}
+        className="fixed inset-0 m-auto p-6 bg-[#1b1f18] text-foreground border border-[#ffffff1c] rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
+        aria-labelledby="delete-account-title"
+        aria-describedby="delete-account-description"
+        onCancel={(event) => {
+          event.preventDefault();
+          close();
+        }}
+        onClose={() => {
+          setOpen(false);
+          queueMicrotask(() => returnFocusRef.current?.focus());
+        }}
+        onClick={(event) => {
+          const rect = dialogRef.current?.getBoundingClientRect();
+          if (rect && (
+            event.clientX < rect.left || event.clientX > rect.right ||
+            event.clientY < rect.top || event.clientY > rect.bottom
+          )) close();
+        }}
+      >
+        <h2 id="delete-account-title" className="text-[26px] leading-tight tracking-[-0.04em] font-medium">
+          Delete your account?
+        </h2>
+        <p id="delete-account-description" className="text-muted text-sm leading-[1.75] mt-3">
+          This permanently deletes your RepLens account, profile and active sessions. Enter your current password to confirm.
+        </p>
+        <form className="grid gap-4 mt-6" onSubmit={(event) => void confirmDeletion(event)}>
+          <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+            Current password
+            <input
+              className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground"
+              name="password"
+              type="password"
+              autoComplete="current-password"
+              required
+              autoFocus
+              disabled={pending}
+            />
+          </label>
+          {error && <p role="alert" className="text-xs leading-[1.7] text-accent">{error}</p>}
+          <button
+            type="submit"
+            disabled={pending || disabled}
+            className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-[#733e39] text-white disabled:opacity-60"
+          >
+            {pending ? "Deleting…" : "Permanently delete account"}
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            className="flex items-center justify-center min-h-11 rounded-xl px-5 text-xs border border-[#ffffff26] disabled:opacity-60"
+            onClick={close}
+          >
+            Cancel
+          </button>
+        </form>
+      </dialog>
+    </>
+  );
+}
