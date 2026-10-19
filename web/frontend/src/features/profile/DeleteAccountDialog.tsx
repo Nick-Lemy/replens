@@ -6,6 +6,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
   disabled?: boolean;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -19,6 +20,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
 
   const close = () => {
     if (pending) return;
+    formRef.current?.reset();
     setOpen(false);
     setError("");
   };
@@ -72,6 +74,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
           close();
         }}
         onClose={() => {
+          formRef.current?.reset();
           setOpen(false);
           queueMicrotask(() => returnFocusRef.current?.focus());
         }}
@@ -89,7 +92,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
         <p id="delete-account-description" className="text-muted text-sm leading-[1.75] mt-3">
           This permanently deletes your RepLens account, profile and active sessions. Enter your current password to confirm.
         </p>
-        <form className="grid gap-4 mt-6" onSubmit={(event) => void confirmDeletion(event)}>
+        <form ref={formRef} className="grid gap-4 mt-6" onSubmit={(event) => void confirmDeletion(event)}>
           <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
             Current password
             <input
@@ -97,6 +100,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
               name="password"
               type="password"
               autoComplete="current-password"
+              maxLength={128}
               required
               autoFocus
               disabled={pending}

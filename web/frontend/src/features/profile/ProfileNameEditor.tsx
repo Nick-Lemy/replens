@@ -46,7 +46,7 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
             autoComplete="name"
             minLength={1}
             maxLength={80}
-            pattern=".*\\S.*"
+            pattern={".*\\S.*"}
             required
             disabled={pending || disabled}
             aria-describedby={error ? "profile-name-error" : undefined}
