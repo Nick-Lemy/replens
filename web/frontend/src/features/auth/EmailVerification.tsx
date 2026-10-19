@@ -33,7 +33,7 @@ export function EmailVerification({ email }: { email: string }) {
       <button
         type="button"
         disabled={pending}
-        className="mt-3 text-xs text-accent underline underline-offset-4 disabled:opacity-60"
+        className="mt-3 min-h-11 text-xs text-accent underline underline-offset-4 disabled:opacity-60"
         onClick={() => void requestVerification()}
       >
         {pending ? "Please wait…" : "Send verification email"}

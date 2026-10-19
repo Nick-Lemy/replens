@@ -135,7 +135,7 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
           ? "New here? Create an account"
           : "Already have an account? Sign in"}
       </button>
-      {mode === "signin" && <button className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline w-full" type="button" disabled={pending || resetPending} onClick={() => { setMode("forgot"); setAttempted(false); }}>Forgot password?</button>}
+      {mode === "signin" && <button className="min-h-11 text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline w-full" type="button" disabled={pending || resetPending} onClick={() => { setMode("forgot"); setAttempted(false); }}>Forgot password?</button>}
     </dialog>
   );
 }
