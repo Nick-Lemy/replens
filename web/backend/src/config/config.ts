@@ -1,5 +1,7 @@
 import 'dotenv/config';
+import { existsSync } from 'node:fs';
 import { isIP } from 'node:net';
+import { dirname, join, resolve } from 'node:path';
 
 export interface AppConfig {
   port: number;
@@ -12,6 +14,17 @@ export interface AppConfig {
   trustedProxyCidrs: string[];
   resendApiKey?: string;
   emailFrom?: string;
+  trackingAssetDir: string;
+}
+
+function defaultTrackingAssetDir(): string {
+  let directory = resolve(process.cwd());
+  while (true) {
+    if (existsSync(join(directory, 'pnpm-workspace.yaml'))) return join(directory, 'models/mediapipe/1.1.1');
+    const parent = dirname(directory);
+    if (parent === directory) return resolve(process.cwd(), 'models/mediapipe/1.1.1');
+    directory = parent;
+  }
 }
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -45,5 +58,5 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const resendApiKey = env.RESEND_API_KEY?.trim();
   const emailFrom = env.EMAIL_FROM?.trim();
   if (Boolean(resendApiKey) !== Boolean(emailFrom)) throw new Error('RESEND_API_KEY and EMAIL_FROM must be configured together');
-  return { port, host: env.HOST ?? '127.0.0.1', production, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
+  return { port, host: env.HOST ?? '127.0.0.1', production, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, trackingAssetDir: resolve(env.TRACKING_ASSET_DIR ?? defaultTrackingAssetDir()), ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
 }

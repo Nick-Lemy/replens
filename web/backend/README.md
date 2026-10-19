@@ -56,6 +56,23 @@ Set `NODE_ENV=production`, explicit HTTPS `BETTER_AUTH_URL` and comma-separated 
 
 No proxy is trusted by default. For Caddy, configure `TRUSTED_PROXY_CIDRS` with only its exact source IP or tightly scoped network, and keep the API inaccessible directly from the internet. Express derives the client IP using that trust list; the auth bridge overwrites its private IP header so clients cannot spoof rate-limit identity. Caddy must sanitize forwarded headers. Never set broad all-network trust. The optional Compose file is local development only, not a production deployment.
 
+## Live tracking assets
+
+The tracking API publishes the pinned MediaPipe Tasks Vision 1.1.1 runtime files and Google's versioned Pose Landmarker Full `float16/1` task from local disk. It does not accept camera uploads or proxy requests to external hosts. Provision the ignored local assets from the repository root:
+
+```sh
+node web/backend/scripts/prepare-tracking-assets.mjs
+```
+
+The script downloads only the six WASM loader/binary files from the pinned `@mediapipe/tasks-vision@1.1.1` package and the official Google `pose_landmarker_full/float16/1` task. It writes atomically under `models/mediapipe/1.1.1/` and records source URLs, sizes and SHA-256 hashes in an ignored `manifest.json`. Re-running verifies the same hashes and refuses to replace an existing immutable version if upstream bytes change. Set `TRACKING_ASSET_DIR` when the assets live outside the repository default.
+
+| Method and path | Result |
+| --- | --- |
+| `GET /api/tracking/config` | `{runtimeVersion,modelUrl,wasmRoot,exerciseId}`; `503` until every local asset is provisioned |
+| `GET /api/tracking/assets/:version/:filename` | Public allowlisted runtime/model bytes with versioned immutable caching; unknown versions or filenames return `404` |
+
+The config response is `no-store`. Asset URLs include both runtime and model versions and use `Cache-Control: public, max-age=31536000, immutable`. The browser can load WASM and model bytes from the same API origin. The supported exercise ID is `two-arm-dumbbell-curl`. Camera frames remain in the browser; there is no upload endpoint. This serves pose-estimation assets only; it does not claim rep-counting accuracy or produce RIR estimates.
+
 ## Verification
 
 ```sh
