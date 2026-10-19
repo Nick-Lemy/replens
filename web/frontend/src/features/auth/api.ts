@@ -45,6 +45,11 @@ async function request(path: string, body?: object, timeoutMs = 15_000): Promise
               : "Account services are unavailable. Please try again.";
       throw new AccountError(message, response.status);
     }
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!/(?:application\/json|application\/[^;]+\+json)(?:\s*;|$)/i.test(contentType)) {
+      await response.body?.cancel();
+      throw new AccountError("Account services returned an invalid response. Please try again.", response.status);
+    }
     if (body) {
       await response.body?.cancel();
       return;
