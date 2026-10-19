@@ -24,3 +24,5 @@ coverage/
 .pnpm-store/
 .husky/_/
 docs/*
+
+web/backend/src/generated/

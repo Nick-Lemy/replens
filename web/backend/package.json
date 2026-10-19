@@ -3,21 +3,36 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "build": "nest build",
-    "check": "tsc --noEmit",
+    "build": "prisma generate && nest build",
+    "check": "prisma generate && tsc --noEmit",
     "start:prod": "node dist/main.js",
-    "dev": "nest start --watch"
+    "dev": "prisma generate && nest start --watch",
+    "generate": "prisma generate",
+    "db:migrate": "prisma migrate deploy",
+    "test": "node --test test/config.test.mjs",
+    "test:integration": "pnpm build && node --test --test-concurrency=1 test/accounts.integration.test.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^12.1.2",
     "@nestjs/core": "^12.1.2",
     "@nestjs/platform-express": "^12.1.2",
+    "@prisma/adapter-pg": "7.10.1",
+    "@prisma/client": "7.10.1",
+    "better-auth": "1.7.11",
+    "better-call": "1.4.2",
+    "dotenv": "^18.0.8",
+    "express": "^5.3.0",
+    "pg": "^8.23.1",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@nestjs/cli": "^12.0.8",
+    "@types/express": "^5.0.6",
     "@types/node": "^26.6.4",
+    "@types/pg": "^8.23.1",
+    "prisma": "7.10.1",
     "typescript": "~6.0.3"
-  }
+  },
+  "type": "module"
 }
