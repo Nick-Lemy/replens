@@ -1,12 +1,16 @@
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../features/auth/AuthProvider";
+import { requestPasswordReset } from "../features/auth/api";
 import { Icon } from "./Icon";
 
 export function AccountDialog({ close, returnFocus }: { close: () => void; returnFocus: HTMLElement | null }) {
   const ref = useRef<HTMLDialogElement>(null);
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const { authenticate, pending, error } = useAuth();
   const [attempted, setAttempted] = useState(false);
+  const [resetPending, setResetPending] = useState(false);
+  const [resetMessage, setResetMessage] = useState("");
+  const [resetError, setResetError] = useState("");
   useEffect(() => {
     const previous = returnFocus;
     ref.current?.showModal();
@@ -43,12 +47,28 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
         <span className="block w-1 h-3 bg-accent rounded-xs nth-2:h-[23px] nth-3:h-[17px]" />
       </div>
       <h2 id="account-title" className="text-[clamp(28px,_4vw,_34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-2">
-        {mode === "signin" ? "Welcome back." : "Make it yours."}
+        {mode === "signin" ? "Welcome back." : mode === "signup" ? "Make it yours." : "Reset password."}
       </h2>
       <p className="text-muted text-sm leading-[1.75] mt-3">
-        Create an account or sign in to RepLens. Session saving will be added later.
+        {mode === "forgot" ? "Enter your account email to request a reset link." : "Create an account or sign in to RepLens."}
       </p>
-      <form
+      {mode === "forgot" ? <form className="mt-6 grid gap-4" onSubmit={async (event) => {
+        event.preventDefault();
+        if (resetPending) return;
+        setResetPending(true); setResetMessage(""); setResetError("");
+        const email = String(new FormData(event.currentTarget).get("email") ?? "").trim();
+        try {
+          await requestPasswordReset(email);
+          setResetMessage("If an account matches this address, check your inbox for a reset link.");
+        } catch (failure) {
+          setResetError(failure instanceof Error ? failure.message : "Password reset is unavailable. Please try again.");
+        } finally { setResetPending(false); }
+      }}>
+        <label className="grid gap-[9px] text-xs text-[#c6cbbd]">Email<input disabled={resetPending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]" required name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
+        {resetMessage && <p role="status" className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]">{resetMessage}</p>}
+        {resetError && <p role="alert" className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]">{resetError}</p>}
+        <button disabled={resetPending} className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">{resetPending ? "Please wait…" : "Request reset link"}</button>
+      </form> : <form
         className="mt-6 grid gap-4"
         onSubmit={async (event) => {
           event.preventDefault();
@@ -101,19 +121,21 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
         <button disabled={pending} className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">
           {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
-      </form>
+      </form>}
       <button
         className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline mt-6 w-full"
-        disabled={pending}
+        disabled={pending || resetPending}
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
           setAttempted(false);
+          setResetError(""); setResetMessage("");
         }}
       >
-        {mode === "signin"
+        {mode === "forgot" ? "Back to sign in" : mode === "signin"
           ? "New here? Create an account"
           : "Already have an account? Sign in"}
       </button>
+      {mode === "signin" && <button className="min-h-11 text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline w-full" type="button" disabled={pending || resetPending} onClick={() => { setMode("forgot"); setAttempted(false); }}>Forgot password?</button>}
     </dialog>
   );
 }
