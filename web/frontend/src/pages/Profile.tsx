@@ -46,9 +46,9 @@ export function Profile({
           </p>
           {user && (user.emailVerified
             ? <p className="mt-4 text-xs text-muted">Email status: <span className="text-foreground">Verified</span></p>
-            : <EmailVerification key={user.id} email={user.email} />)}
+            : <EmailVerification key={`verification:${user.id}`} email={user.email} />)}
           {user && (
-            <div key={user.id} className="mt-2">
+            <div key={`profile:${user.id}`} className="mt-2">
               <ProfileNameEditor user={user} refresh={refresh} disabled={pending} />
               <div className="border-t border-[#ffffff12] mt-4 pt-3">
                 <DeleteAccountDialog refresh={refresh} disabled={pending} />
