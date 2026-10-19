@@ -11,7 +11,7 @@ pnpm install
 pnpm dev:frontend
 ```
 
-Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The interface itself does not require the health API to render. Vite proxies future `/api` requests to port 3000; production forwarding awaits the real VPS domain.
+Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The interface itself does not require the health API to render. Vite proxies `/api` requests to port 3000; production forwarding awaits the real VPS domain.
 
 ## Implemented interface
 
@@ -20,8 +20,8 @@ Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend to
 - Live-session page with actual video-only camera access, permission error handling, camera switching, framing cues and a configurable preview countdown/timer.
 - Camera tracks stop on navigation, tab backgrounding and component cleanup, including late permission responses. No MediaRecorder or video upload is used.
 - History empty state; previews are not presented as completed exercise sessions.
-- Profile with browser-local camera/countdown preferences and installation guidance.
-- Account form designs with native validation. These do not send credentials, create accounts or sign users in; that requires Better Auth integration.
+- Profile with actual account name/email, signout, browser-local camera/countdown preferences and installation guidance.
+- Account forms with native validation and real persisted signup/signin through Better Auth. Sessions restore through `/api/me`; unavailable and expired sessions are handled without fabricated identity.
 - Bottom navigation on phones, sidebar on larger screens, hash navigation with browser Back support, keyboard focus styles and a native modal dialog.
 
 Rep tracking, RIR inference, authenticated history and saved sessions remain unimplemented. Rep and RIR fields display unavailable marks rather than example predictions. Exercise photos are static guide references; they are not live footage or model outputs.
@@ -59,7 +59,7 @@ Netlify builds from the repo root with `pnpm --filter @replens/frontend build` a
 
 The current frontend passes TypeScript 7 checking and the actual Vite 8.3.4 production build. The PWA build step generated a versioned cache with eight public assets. The PWA cache-contract test also passes. Existing application dependencies became available during this revision; the earlier isolated checks are superseded by this production build.
 
-Browser/device review is still pending: local HTTP binding was denied in the managed environment, and computer-use approval for Zen was denied. Rendered layout, camera permissions and installation must still be checked on real phones before deployment.
+Chromium mobile-emulation browser checks pass against real NestJS/PostgreSQL, including authentication, modal focus, mobile overflow and camera-track cleanup with a test-only camera fixture. Physical-phone camera permissions, installation and deployment still need real-device verification.
 
 The mobile redesign uses compact titles, a single-column home screen, a fixed bottom bar and 44px icon controls. Decorative preview labels and repeated category chips were removed. Sora uses Google Fonts in this revision because the new font package could not be resolved through the restricted registry. The existing pnpm lockfile is preserved; the font has a system fallback and is not in the service-worker cache.
 
@@ -75,7 +75,7 @@ To add a guide, supply a stable ID, display name, body area, equipment, focus, s
 
 Home uses the curl photograph, every library row has a lazy-loaded photo, and every detail page has a full-image gallery. The helper displays a text fallback on loading failure and retries after reconnection. Detail images fit within their frame; library thumbnails are cropped. Photo controls say “Photo 1/2” rather than claiming that still frames prove complete rep boundaries. Kettlebell goblet-squat, walking-lunge and rotating-grip seated-curl variations are explicitly identified below their photos. The written guide variants and research scope are unchanged.
 
-All Free Exercise DB image URLs were checked through the web tool. The bridge's first image repeatedly timed out, so only its second image is used. The bird-dog source/credit/license were verified on Commons, but direct thumbnail retrieval could not be verified; its Special:FilePath URL requests a 640px image. Shell downloads and browser review remain blocked, so image rendering on actual devices is still pending. These external references are not bundled local assets and remain subject to provider availability.
+All Free Exercise DB image URLs were checked through the web tool. The bridge's first image repeatedly timed out, so only its second image is used. The bird-dog source/credit/license were verified on Commons, but direct thumbnail retrieval could not be verified; its Special:FilePath URL requests a 640px image. Image rendering on physical devices and external-provider delivery remain pending. These external references are not bundled local assets and remain subject to provider availability.
 
 `node scripts/test-photos.mjs` checks coverage and credit/license metadata without making network requests. The public photos are UI content, not research training examples or RIR-labeled data.
 
@@ -111,4 +111,4 @@ pnpm --filter @replens/frontend exec playwright install chromium
 pnpm --filter @replens/frontend test:e2e
 ```
 
-`TEST_DATABASE_URL` is required. The suite starts its own NestJS on port 3123 and Vite on port 4273, uses the real API/database, creates isolated test accounts and removes those accounts afterward. It verifies real signup/signin/signout, cookie restoration, expired sessions, invalid credentials, validation, dialog Escape/focus, mobile fit, network recovery stale-response protection, and camera-track cleanup on navigation/backgrounding. Network interruption/delayed-response cases are isolated failure tests; successful authentication is never simulated. Screenshots/traces remain ignored local artifacts. Chromium phone emulation does not establish real iPhone/Android hardware or production deployment compatibility.
+`TEST_DATABASE_URL` is required. The suite starts its own NestJS on port 3123 and Vite on port 4273, uses the real API/database, creates isolated test accounts and removes those accounts afterward. It verifies real signup/signin/signout, cookie restoration, expired sessions, invalid credentials, validation, dialog Escape/focus, mobile fit, network recovery, stale-response protection, and camera-track cleanup on navigation/backgrounding. Network interruption/delayed-response cases are isolated failure tests; successful authentication is never simulated. Screenshots/traces remain ignored local artifacts. Chromium phone emulation does not establish real iPhone/Android hardware or production deployment compatibility.
