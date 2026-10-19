@@ -23,6 +23,11 @@
 
 - Feature 2 uses Resend's HTTP API for explicit authenticated email verification and password reset. Nick will add `RESEND_API_KEY`/`EMAIL_FROM` later; both must be set together, and no key belongs in Git/frontend code. Outbound mail actions return 503 when unconfigured; existing signin/signup still work. Verification links last one hour; native reset tokens last 15 minutes, are consumed once and revoke account sessions. Public reset acknowledgment is conditional, not delivery proof. Frontend link tokens stay in memory and are removed from the URL; successful API responses must be JSON. New automated coverage is deferred; provider delivery/successful email round trips remain unverified. See `SPRINT.md` and the backend/frontend READMEs for review state and setup.
 
+## Feature 3 implementation
+
+- Profile now supports persisted display-name edits and account deletion with mandatory current-password confirmation through Better Auth. Only the signed-in account can be changed; unsupported fields are rejected. Deletion removes its user/account/session records and linked reset tokens, clears authentication and returns the UI to guest. Browser camera preferences remain local. No exercise-history or research-record deletion claims are implied.
+- Backend PR #7 and frontend PR #8 were independently reviewed and merged into `dev`; focused React-key correction PR #9 was independently reviewed in the same feature. Lead verified real database/API/browser flows using disposable accounts; new automated tests are deferred. See `SPRINT.md` for the final review gate.
+
 ## Earlier project history
 
 - Project name: RepLens. The GitHub repository is `Nick-Lemy/replens` and must remain private unless the user explicitly requests otherwise. The local workspace folder is still named `velocity-tremor-ml`.

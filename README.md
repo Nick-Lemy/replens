@@ -31,7 +31,7 @@ Follow [backend local setup](web/backend/README.md#local-setup) to create the ig
 
 Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. Run the services separately with `pnpm dev:frontend` and `pnpm dev:backend`. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
-The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, profile identity, educational guides and camera preview/countdown. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Saved exercise sessions, live rep counting and RIR inference are not implemented yet. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
+The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and camera preview/countdown. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Saved exercise sessions, live rep counting and RIR inference are not implemented yet. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
 
 ## Git checks and commit messages
 
