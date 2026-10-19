@@ -10,13 +10,15 @@
     "test": "node --test scripts/test-pwa.mjs scripts/test-photos.mjs",
     "preview": "vite preview",
     "test:pwa": "node scripts/test-pwa.mjs",
-    "test:photos": "node scripts/test-photos.mjs"
+    "test:photos": "node scripts/test-photos.mjs",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "react": "^19.3.0",
     "react-dom": "^19.3.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/vite": "^4.3.3",
     "@types/node": "^26.6.4",
     "@types/react": "^19.3.0",

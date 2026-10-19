@@ -13,24 +13,25 @@ training/ Planned model training and evaluation
 docs/     Project proposal
 ```
 
-The current prototype is in [pilot/README.md](pilot/README.md). It counts curls and extracts movement measurements; it does not have a trained RIR predictor. Volunteer collection is planned only after ALU ethics approval, gym permission, and consent.
+The current prototype is in [pilot/README.md](pilot/README.md). It counts curls and extracts movement measurements; it does not have a trained RIR predictor. Volunteer recording requires ALU ethics approval, gym permission, and individual consent.
 
-[web/README.md](web/README.md) explains the planned application. [training/README.md](training/README.md) explains how we will train and compare the RIR models. The web folder now has a frontend/backend starter; training currently contains documentation only.
+[web/README.md](web/README.md) explains the application. [training/README.md](training/README.md) explains how we will train and compare the RIR models. Training currently contains documentation only.
 
 Local model files, videos, set CSVs, and the Python environment are excluded from version control. Keep the participant code-to-name list separately in approved storage.
 
-## Run the web starter
+## Run the web app
 
-Use Node.js 24 or newer. From the repository root:
+Use Node.js 24 LTS. From the repository root:
 
 ```bash
 pnpm install
-pnpm dev
 ```
+
+Follow [backend local setup](web/backend/README.md#local-setup) to create the ignored environment file, choose local database credentials, start PostgreSQL and apply the committed migration. Then run `pnpm dev` from the repository root.
 
 Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. Run the services separately with `pnpm dev:frontend` and `pnpm dev:backend`. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
-The React app uses Vite and Tailwind CSS with browser rendering. The NestJS backend currently exposes only a health endpoint. The frontend includes a mobile PWA interface and camera preview/countdown; Better Auth, PostgreSQL integration, pose processing and RIR inference remain future implementation. Netlify settings live in `netlify.toml`; production API forwarding needs the actual VPS hostname.
+The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, profile identity, educational guides and camera preview/countdown. Password recovery, email verification, saved exercise sessions, live rep counting and RIR inference are not implemented yet. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
 
 ## Git checks and commit messages
 
@@ -41,7 +42,7 @@ pnpm hooks:install
 ```
 
 - **Pre-commit:** checks staged changes for whitespace errors, then type-checks both web packages.
-- **Pre-push:** builds both web packages and runs available workspace tests (currently the frontend PWA and exercise-photo mapping checks).
+- **Pre-push:** builds both web packages and runs available workspace tests. Database and browser integration checks are separate CI gates; see [SPRINT.md](SPRINT.md).
 
 Hooks require pnpm on your terminal's PATH. They validate the current working files; stage the intended changes before committing. These checks do not evaluate the Python pilot or RIR model accuracy. Run them manually with `pnpm check`, `pnpm build`, and `pnpm test`.
 

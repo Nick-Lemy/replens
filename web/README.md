@@ -1,6 +1,6 @@
 # RepLens web application
 
-This folder will contain the mobile-first web application people use for live feedback during a curl set. It now contains `frontend/` (React, TypeScript, Vite and Tailwind) and `backend/` (NestJS and TypeScript). The working video-processing demo remains in `../pilot/`.
+This folder contains the mobile-first web application: `frontend/` (React, TypeScript, Vite and Tailwind) and `backend/` (NestJS and TypeScript). Accounts use Better Auth, Prisma and PostgreSQL. The working video-processing pilot remains in `../pilot/`; live web rep counting and RIR prediction are not connected yet.
 
 The planned parts are:
 
@@ -14,7 +14,7 @@ The web app will use the same feature calculations used during model training. F
 
 **Inference** means using a trained model to make a prediction on a new input. The app will perform inference; training happens separately in `../training/` before a model is added to the app.
 
-The proposed web stack is React + TypeScript for the interface and NestJS + TypeScript for a modular backend, with Better Auth, Prisma and PostgreSQL, with the React frontend and model assets hosted on Netlify. Docker Compose runs Caddy, NestJS and PostgreSQL on one VPS. Caddy uses a Caddyfile for HTTPS and API routing. Both belong in this repository. See `ARCHITECTURE.md` and the compact `ARCHITECTURE.eraser` diagram. Live browser inference remains subject to model export and actual phone performance checks.
+The selected deployment serves the React frontend from Netlify and versioned model files from the Kigali VPS. Docker Compose will run Caddy, NestJS and PostgreSQL on that VPS; Caddy will provide HTTPS and API/model-file routing. The current Compose file starts a local development database only. See `backend/README.md` for authentication origins/cookies and local setup. Older architecture drawings may predate the model-hosting choice. Live browser inference remains subject to model export and actual phone performance checks.
 
 Before building the full app, we need a reliable video pipeline and an evaluation showing what the RIR model can and cannot do.
 
@@ -43,10 +43,10 @@ Do not label the main live feature or its controls "Record" or "Recording": the 
 
 ## Starter commands
 
-From the repository root: `pnpm install`, then `pnpm dev`. The frontend runs on port 5173 and proxies `/api` to the backend on port 3000. `pnpm check` checks types and `pnpm build` compiles both workspaces. There is no React Router server framework or frontend server rendering. The frontend now has Home, Guide, Live, History and Profile pages, account form designs, and PWA support. Camera preview/countdown works in the implementation; rep tracking, RIR and account backend integration remain pending. See `frontend/README.md` for behavior and verification limits.
+From the repository root: `pnpm install`, follow `backend/README.md` to configure PostgreSQL and apply migrations, then `pnpm dev`. The frontend runs on port 5173 and proxies `/api` to the backend on port 3000. `pnpm check` checks types and `pnpm build` compiles both workspaces. There is no frontend server rendering. Home, Guide, Live, History and Profile retain the existing design; accounts connect to the real backend. History remains an honest empty state until saving is implemented. See `frontend/README.md` for behaviour and verification limits.
 
 ## Verification
 
-Earlier installation attempts were blocked by registry access. Dependencies are now present, and the mobile frontend passes its actual TypeScript 7 check, Vite 8.3.4 production build and PWA generation. The cache-contract test passes. Backend production verification and browser/device review remain pending.
+Sprint 1 adds real database and browser integration gates alongside TypeScript checks, production builds, configuration tests, and public-only PWA cache/photo checks. See `../SPRINT.md` for review results and PR references. Automated browser testing does not establish physical-phone or production-deployment performance.
 
 The frontend uses Sora through a Google Fonts stylesheet, compact phone layouts and a focused app-style Home. The font's external requests are not cached by the shell service worker. See `frontend/README.md` for the current implementation and limits.

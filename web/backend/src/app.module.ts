@@ -1,5 +1,11 @@
-import { Module } from '@nestjs/common';
-import { HealthModule } from './health/health.module';
+import { DynamicModule, Module } from '@nestjs/common';
+import { HealthModule } from './health/health.module.js';
+import { AuthModule } from './auth/auth.module.js';
+import type { AppConfig } from './config/config.js';
 
-@Module({ imports: [HealthModule] })
-export class AppModule {}
+@Module({})
+export class AppModule {
+  static register(config: AppConfig): DynamicModule {
+    return { module: AppModule, imports: [HealthModule, AuthModule.register(config)] };
+  }
+}

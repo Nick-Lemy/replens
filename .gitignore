@@ -24,3 +24,9 @@ coverage/
 .pnpm-store/
 .husky/_/
 docs/*
+
+web/backend/src/generated/
+
+# Browser test artifacts
+**/test-results/
+**/playwright-report/

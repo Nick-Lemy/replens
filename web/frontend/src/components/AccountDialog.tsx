@@ -1,13 +1,17 @@
 import { useEffect, useRef, useState } from "react";
+import { useAuth } from "../features/auth/AuthProvider";
 import { Icon } from "./Icon";
 
-export function AccountDialog({ close }: { close: () => void }) {
+export function AccountDialog({ close, returnFocus }: { close: () => void; returnFocus: HTMLElement | null }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [message, setMessage] = useState("");
+  const { authenticate, pending, error } = useAuth();
+  const [attempted, setAttempted] = useState(false);
   useEffect(() => {
+    const previous = returnFocus;
     ref.current?.showModal();
-  }, []);
+    return () => { queueMicrotask(() => previous?.focus()); };
+  }, [returnFocus]);
   return (
     <dialog
       ref={ref}
@@ -42,31 +46,34 @@ export function AccountDialog({ close }: { close: () => void }) {
         {mode === "signin" ? "Welcome back." : "Make it yours."}
       </h2>
       <p className="text-muted text-sm leading-[1.75] mt-3">
-        Save your sessions and keep your progress in one place.
-      </p>
-      <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546] mt-6">
-        Accounts are not connected in this preview. Your details will not be
-        submitted or saved.
+        Create an account or sign in to RepLens. Session saving will be added later.
       </p>
       <form
         className="mt-6 grid gap-4"
-        onSubmit={(event) => {
+        onSubmit={async (event) => {
           event.preventDefault();
-          setMessage(
-            "Account access will be available when authentication is connected.",
-          );
+          if (pending) return;
+          const form = new FormData(event.currentTarget);
+          setAttempted(true);
+          const success = await authenticate(mode, {
+            ...(mode === "signup" ? { name: String(form.get("name") ?? "").trim() } : {}),
+            email: String(form.get("email") ?? "").trim(),
+            password: String(form.get("password") ?? ""),
+          });
+          if (success) close();
         }}
       >
         {mode === "signup" && (
           <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
             Name
-            <input className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]" required autoComplete="name" placeholder="Your name" />
+            <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]" required name="name" maxLength={80} pattern={".*\\S.*"} autoComplete="name" placeholder="Your name" />
           </label>
         )}
         <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
           Email
-          <input className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
+          <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
             required
+            name="email"
             type="email"
             autoComplete="email"
             placeholder="you@example.com"
@@ -74,30 +81,33 @@ export function AccountDialog({ close }: { close: () => void }) {
         </label>
         <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
           Password
-          <input className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
+          <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
             required
+            name="password"
             type="password"
-            minLength={8}
+            minLength={12}
+            maxLength={128}
             autoComplete={
               mode === "signin" ? "current-password" : "new-password"
             }
-            placeholder="At least 8 characters"
+            placeholder="12–128 characters"
           />
         </label>
-        {message && (
-          <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]" role="status">
-            {message}
+        {attempted && error && (
+          <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]" role="alert">
+            {error}
           </p>
         )}
-        <button className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">
-          {mode === "signin" ? "Sign in" : "Create account"}
+        <button disabled={pending} className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">
+          {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>
       <button
         className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline mt-6 w-full"
+        disabled={pending}
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
-          setMessage("");
+          setAttempted(false);
         }}
       >
         {mode === "signin"

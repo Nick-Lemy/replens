@@ -1,22 +1,11 @@
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { createApp } from './app.js';
+import { readConfig } from './config/config.js';
 
 async function bootstrap() {
-  const port = Number(process.env.PORT ?? 3000);
-  if (!Number.isInteger(port) || port < 1 || port > 65535) {
-    throw new Error('PORT must be an integer between 1 and 65535');
-  }
-
-  const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api');
-  app.enableShutdownHooks();
-  if (process.env.FRONTEND_ORIGIN) {
-    app.enableCors({ origin: process.env.FRONTEND_ORIGIN, credentials: true });
-  }
-  await app.listen(port, process.env.HOST ?? '127.0.0.1');
+  const config = readConfig();
+  const app = await createApp(config);
+  await app.listen(config.port, config.host);
 }
-
 void bootstrap().catch((error: unknown) => {
   console.error(error);
   process.exitCode = 1;
