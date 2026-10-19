@@ -21,7 +21,7 @@ Scope approved: real email/password signup, signin, signout, current user and co
 | Backend review | Lead | Passed | Code review, separate real database tests and GitHub CI; merged at `2e13447` |
 | Frontend | Frontend Engineer | Reviewed and merged to `dev` | `ft/accounts-frontend`; [PR #2](https://github.com/Nick-Lemy/replens/pull/2), merge `7e43f65` |
 | Integration verification | Lead | Passed | Merged `dev`: real PostgreSQL + browser workflow |
-| Human review | Nick | Awaiting explicit approval | `dev` → `main`; no merge authorized yet |
+| Human review | Nick | Approved and merged | [PR #3](https://github.com/Nick-Lemy/replens/pull/3); `main`/`dev` synchronized at `97c19d3` |
 
 ## Verification baseline
 
@@ -36,10 +36,21 @@ Sprint 0: both TypeScript checks and production builds passed; two existing fron
 
 ## Remaining gates
 
-PR to `main` → stop for human approval. No next feature until approved and merged.
+Sprint 1 complete. Nick authorized the next feature on 19 October 2026.
 
 Backend verification: workspace checks/builds, five configuration tests, two existing frontend tests and 15 PostgreSQL integration tests passed independently. Migration applied to a separate disposable database; signup hashing, restart persistence, session revocation/expiry, origin validation, request-size bounds and no-store responses checked. GitHub application CI and GitGuardian passed. Review comment records requested corrections. No production domain/deployment or phone-device claim.
 
 Final integration checkpoint (19 October 2026): merged `dev` passed both workspace checks/builds and all 30 tests: five configuration, two public-cache/photo, 15 real database integration, seven real API/browser workflows and one isolated stalled-body timeout test. Lead independently reviewed both PRs, requested corrections and re-reviewed them. Browser coverage includes signup/signin/signout, reload, expiry, invalid credentials, network recovery, stale-response protection, modal validation/focus/mobile fit and camera-track cleanup. Reviewed the mobile Profile screenshot. Both feature PRs passed GitHub CI and GitGuardian before merge.
 
 Remaining limitations: production Netlify/API proxy and cookie domains, physical iPhone/Android behaviour and PWA installation need deployment/device checks. Email verification/recovery, profile edits/deletion, history persistence, live counts and RIR remain deferred. No unresolved implementation blocker in this feature.
+
+## Feature 2 — Email verification and password reset
+
+- Provider: Resend, selected by Nick. Credentials and verified sender are not configured yet; no real-recipient test emails authorized.
+- Acceptance: explicit email confirmation; expiring reset links, single-use reset and session revocation; generic public reset acknowledgments; honest unavailable/failure states; existing account, guest, camera and PWA behaviour preserved.
+- Backend: [PR #4](https://github.com/Nick-Lemy/replens/pull/4) independently reviewed and merged into `dev` at `d0db28b`. Frontend: [PR #5](https://github.com/Nick-Lemy/replens/pull/5) independently reviewed, corrected and merged at `2a8c260`. Existing application CI and GitGuardian passed for both PRs.
+- Model metadata verified: Main `gpt-6.1-sol`/medium; Backend `/root/email_backend` and Frontend `/root/email_frontend` use `gpt-6-luna`/medium. Terra is unavailable.
+- Verification update from Nick: defer new automated tests until after the sprints. Implement/review features, preserve existing hook/CI checks and use targeted smoke checks. New email-flow coverage and real Resend delivery remain unverified until credentials/testing are available.
+- Gate: backend PR → review/merge into `dev` → frontend PR → review/merge → integration → `dev`/`main` PR → stop for Nick's approval. No next feature or automatic main merge.
+- Lead verification: backend/frontend TypeScript and builds passed. Real backend/database/browser smoke checked invalid verification/reset links, password mismatch, fragment-token removal, unavailable reset requests and authenticated verification requests; mobile screenshot inspected. Temporary smoke account was removed from the isolated database. Source review covered native token expiry/consumption, session revocation, redirects, privacy and API response validation.
+- Ready for human code review; successful email round trips and Resend delivery remain unverified, and new automated coverage is deferred. `main` remains at the approved Sprint 1 merge until Nick approves this feature.

@@ -27,16 +27,28 @@ async function request(path: string, body?: object, timeoutMs = 15_000): Promise
     });
     if (!response.ok) {
       await response.body?.cancel();
+      const endpoint = path.split("?", 1)[0];
       const message = response.status === 429
         ? "Too many attempts. Please wait a minute before trying again."
-        : response.status === 401
+        : response.status === 503 && ["auth/send-verification-email", "auth/request-password-reset"].includes(endpoint)
+          ? "Email service is unavailable right now. Please try again later."
+          : response.status === 401 && endpoint === "auth/sign-in/email"
           ? "Email or password is incorrect."
+          : response.status === 401 && endpoint === "auth/verify-email"
+            ? "This verification link is invalid or expired. Request a new link from your profile."
+            : response.status === 400 && endpoint === "auth/reset-password"
+              ? "This reset link is invalid or expired. Request a new password reset link and try again."
           : response.status === 422
             ? "An account could not be created with these details. Try signing in instead."
             : response.status === 400
               ? "Check your details and try again."
               : "Account services are unavailable. Please try again.";
       throw new AccountError(message, response.status);
+    }
+    const contentType = response.headers.get("content-type") ?? "";
+    if (!/(?:application\/json|application\/[^;]+\+json)(?:\s*;|$)/i.test(contentType)) {
+      await response.body?.cancel();
+      throw new AccountError("Account services returned an invalid response. Please try again.", response.status);
     }
     if (body) {
       await response.body?.cancel();
@@ -71,4 +83,20 @@ export async function submitAccount(mode: "signin" | "signup", details: { name?:
 
 export async function endAccountSession() {
   await request("auth/sign-out", {});
+}
+
+export async function requestPasswordReset(email: string) {
+  await request("auth/request-password-reset", { email });
+}
+
+export async function sendVerificationEmail(email: string) {
+  await request("auth/send-verification-email", { email });
+}
+
+export async function verifyEmail(token: string) {
+  await request(`auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resetPassword(token: string, newPassword: string) {
+  await request("auth/reset-password", { token, newPassword });
 }

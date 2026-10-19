@@ -1,5 +1,6 @@
 import type { MouseEvent } from "react";
 import { useAuth } from "../features/auth/AuthProvider";
+import { EmailVerification } from "../features/auth/EmailVerification";
 import { Icon } from "../components/Icon";
 import type { Facing } from "../hooks/useCamera";
 
@@ -41,6 +42,9 @@ export function Profile({
           <p className="break-all text-muted text-sm leading-[1.75] mt-3">
             {user ? user.email : "Sign in or create your RepLens account."}
           </p>
+          {user && (user.emailVerified
+            ? <p className="mt-4 text-xs text-muted">Email status: <span className="text-foreground">Verified</span></p>
+            : <EmailVerification key={user.id} email={user.email} />)}
           <button
             className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6"
             disabled={pending || status === "loading"}
