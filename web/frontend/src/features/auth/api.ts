@@ -36,6 +36,12 @@ async function request(path: string, body?: object, timeoutMs = 15_000): Promise
           ? "Email or password is incorrect."
           : response.status === 401 && endpoint === "auth/verify-email"
             ? "This verification link is invalid or expired. Request a new link from your profile."
+          : response.status === 401 && ["auth/update-user", "auth/delete-user"].includes(endpoint)
+            ? "Your session expired. Sign in again to continue."
+            : response.status === 400 && endpoint === "auth/delete-user"
+              ? "The current password is incorrect. Check it and try again."
+              : response.status === 400 && endpoint === "auth/update-user"
+                ? "Enter a valid name between 1 and 80 characters."
             : response.status === 400 && endpoint === "auth/reset-password"
               ? "This reset link is invalid or expired. Request a new password reset link and try again."
           : response.status === 422
@@ -99,4 +105,12 @@ export async function verifyEmail(token: string) {
 
 export async function resetPassword(token: string, newPassword: string) {
   await request("auth/reset-password", { token, newPassword });
+}
+
+export async function updateAccountName(name: string) {
+  await request("auth/update-user", { name });
+}
+
+export async function deleteAccount(password: string) {
+  await request("auth/delete-user", { password });
 }
