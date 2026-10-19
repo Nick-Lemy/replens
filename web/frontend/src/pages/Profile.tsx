@@ -1,3 +1,5 @@
+import type { MouseEvent } from "react";
+import { useAuth } from "../features/auth/AuthProvider";
 import { Icon } from "../components/Icon";
 import type { Facing } from "../hooks/useCamera";
 
@@ -15,11 +17,12 @@ export function Profile({
 }: {
   preferences: Preferences;
   update: (value: Preferences) => void;
-  openAccount: () => void;
+  openAccount: (event?: MouseEvent<HTMLButtonElement>) => void;
   install: () => Promise<void>;
   canInstall: boolean;
   installed: boolean;
 }) {
+  const { user, status, pending, error, refresh, signOut } = useAuth();
   return (
     <>
       <div className="mb-7 lg:mb-8">
@@ -32,18 +35,20 @@ export function Profile({
           <div className="grid place-items-center size-15.5 rounded-full bg-[#d5dac5] text-[#313b29]">
             <Icon className="size-7" name="user" />
           </div>
-          <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-5">
-            Guest account
+          <h2 className="break-words font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-5">
+            {user?.name ?? (status === "loading" ? "Checking account…" : status === "unavailable" ? "Account unavailable" : "Guest account")}
           </h2>
-          <p className="text-muted text-sm leading-[1.75] mt-3">
-            Account access will let you save and revisit your sessions.
+          <p className="break-all text-muted text-sm leading-[1.75] mt-3">
+            {user ? user.email : "Sign in or create your RepLens account."}
           </p>
           <button
             className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6"
-            onClick={openAccount}
+            disabled={pending || status === "loading"}
+            onClick={(event) => { if (user) void signOut(); else if (status === "unavailable") void refresh(); else openAccount(event); }}
           >
-            View account setup
+            {pending ? "Please wait…" : user ? "Sign out" : status === "unavailable" ? "Retry account connection" : "Sign in or create account"}
           </button>
+          {error && <p role="alert" className="mt-4 text-sm text-accent">{error}</p>}
         </section>
         <div className="grid gap-5">
           <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
@@ -128,8 +133,7 @@ export function Profile({
           <h2 className="text-sm font-medium">Camera privacy</h2>
           <p className="text-xs leading-[1.8] text-muted mt-2.25">
             This preview does not upload or store camera footage. Only your
-            camera preferences are saved on this device. Account and
-            session-data controls will be added with those features.
+            camera preferences are saved on this device. Accounts use a secure session cookie. Saved session data and account-deletion controls are not available yet.
           </p>
         </div>
       </section>

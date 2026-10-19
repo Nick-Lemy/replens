@@ -38,3 +38,5 @@ jobs:
       - run: pnpm test
       - run: pnpm --filter @replens/backend db:migrate
       - run: pnpm --filter @replens/backend test:integration
+      - run: pnpm --filter @replens/frontend exec playwright install --with-deps chromium
+      - run: pnpm --filter @replens/frontend test:e2e

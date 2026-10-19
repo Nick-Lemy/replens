@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent } from "react";
 import { Icon, type IconName } from "./components/Icon";
 import { AccountDialog } from "./components/AccountDialog";
 import { Home } from "./pages/Home";
@@ -6,6 +6,7 @@ import { Guide } from "./pages/Guide";
 import { Live } from "./pages/Live";
 import { History } from "./pages/History";
 import { Profile, type Preferences } from "./pages/Profile";
+import { useAuth } from "./features/auth/AuthProvider";
 import { useInstall } from "./hooks/useInstall";
 
 const navigation: { id: string; label: string; icon: IconName }[] = [
@@ -37,10 +38,12 @@ function readPreferences(): Preferences {
 
 export function App() {
   const [route, setRoute] = useState(readRoute);
+  const accountTrigger = useRef<HTMLElement | null>(null);
   const [accountOpen, setAccountOpen] = useState(false);
   const [preferences, setPreferences] = useState(readPreferences);
   const [offline, setOffline] = useState(!navigator.onLine);
   const installer = useInstall();
+  const { user, status, error, refresh } = useAuth();
 
   useEffect(() => {
     const changed = () => {
@@ -70,7 +73,10 @@ export function App() {
       /* Preferences still work for this visit. */
     }
   };
-  const openAccount = () => setAccountOpen(true);
+  const openAccount = (event?: MouseEvent<HTMLButtonElement>) => {
+    accountTrigger.current = event?.currentTarget ?? document.activeElement as HTMLElement;
+    setAccountOpen(true);
+  };
   return (
     <div className="max-w-400 m-auto min-h-dvh lg:grid lg:grid-cols-[225px_minmax(0,1fr)]">
       <a
@@ -129,8 +135,8 @@ export function App() {
           <div className="flex items-center gap-3.5">
             <button
               className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full"
-              aria-label="Open account setup"
-              onClick={openAccount}
+              aria-label={user ? "Open profile" : "Open account setup"}
+              onClick={(event) => { if (user) window.location.hash = "profile"; else openAccount(event); }}
             >
               <Icon className="size-4.75" name="user" />
             </button>
@@ -143,6 +149,12 @@ export function App() {
           >
             You’re offline. Previously loaded guides and camera preview remain
             available.
+          </div>
+        )}
+        {status === "unavailable" && (
+          <div role="status" className="flex flex-wrap items-center gap-3 py-3 px-5 text-xs text-accent">
+            <span>{error}</span>
+            <button className="underline underline-offset-4 p-2" onClick={() => void refresh()}>Retry connection</button>
           </div>
         )}
         <main
@@ -188,7 +200,7 @@ export function App() {
           ))}
         </nav>
       </div>
-      {accountOpen && <AccountDialog close={() => setAccountOpen(false)} />}
+      {accountOpen && <AccountDialog close={() => setAccountOpen(false)} returnFocus={accountTrigger.current} />}
     </div>
   );
 }
