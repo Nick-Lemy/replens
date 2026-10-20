@@ -9,7 +9,18 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
 }) {
   const [editing, setEditing] = useState(false);
   const [notice, setNotice] = useState("");
-  const mutation = useMutation({ mutationFn: updateAccountName, gcTime: 0 });
+  const mutation = useMutation({
+    mutationFn: async (name: string) => {
+      try {
+        await updateAccountName(name);
+        await refresh();
+      } catch (failure) {
+        if (failure instanceof AccountError && failure.status === 401) await refresh();
+        throw failure;
+      }
+    },
+    gcTime: 0,
+  });
   const pending = mutation.isPending;
   const error = mutation.error?.message ?? "";
 
@@ -21,14 +32,10 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
     setNotice("");
     try {
       await mutation.mutateAsync(name);
-      await refresh();
       setEditing(false);
       setNotice("Name saved.");
     } catch (failure) {
-      if (failure instanceof AccountError && failure.status === 401) {
-        await refresh();
-        return;
-      }
+      if (failure instanceof AccountError && failure.status === 401) return;
     }
   };
 

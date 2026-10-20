@@ -32,8 +32,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const previousUserId = useRef<string | null>(null);
   const session = useQuery(sessionOptions);
   const authentication = useMutation({
-    mutationFn: ({ mode, details }: { mode: "signin" | "signup"; details: { name?: string; email: string; password: string } }) =>
-      submitAccount(mode, details),
+    mutationFn: async ({ mode, details }: { mode: "signin" | "signup"; details: { name?: string; email: string; password: string } }) => {
+      await queryClient.cancelQueries({ queryKey: sessionKey, exact: true });
+      await submitAccount(mode, details);
+      await queryClient.cancelQueries({ queryKey: sessionKey, exact: true });
+      const restored = await queryClient.fetchQuery(sessionOptions);
+      if (!restored) {
+        throw new Error("Your account request succeeded, but a session could not be restored. Check that cookies are allowed and try signing in again.");
+      }
+      return restored;
+    },
     gcTime: 0,
   });
   const signOutMutation = useMutation({
@@ -76,14 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSignOutFailed(false);
     authentication.reset();
     try {
-      await queryClient.cancelQueries({ queryKey: sessionKey, exact: true });
       await authentication.mutateAsync({ mode, details });
-      await queryClient.cancelQueries({ queryKey: sessionKey, exact: true });
-      const restored = await queryClient.fetchQuery(sessionOptions);
-      if (!restored) {
-        setActionError("Your account request succeeded, but a session could not be restored. Check that cookies are allowed and try signing in again.");
-        return false;
-      }
       setActionError("");
       return true;
     } catch (failure) {

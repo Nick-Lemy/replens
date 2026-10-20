@@ -11,7 +11,18 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
-  const mutation = useMutation({ mutationFn: deleteAccount, gcTime: 0 });
+  const mutation = useMutation({
+    mutationFn: async (password: string) => {
+      try {
+        await deleteAccount(password);
+        await refresh();
+      } catch (failure) {
+        if (failure instanceof AccountError && failure.status === 401) await refresh();
+        throw failure;
+      }
+    },
+    gcTime: 0,
+  });
   const pending = mutation.isPending;
 
   useEffect(() => {
@@ -38,12 +49,10 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
     try {
       await mutation.mutateAsync(password);
       form.reset();
-      await refresh();
       setOpen(false);
     } catch (failure) {
       form.reset();
       if (failure instanceof AccountError && failure.status === 401) {
-        await refresh();
         return;
       }
       setError(failure instanceof Error ? failure.message : "Your account could not be deleted. Please try again.");

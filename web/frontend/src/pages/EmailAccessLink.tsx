@@ -13,8 +13,20 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
   const { refresh } = useAuth();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const verificationMutation = useMutation({ mutationFn: verifyEmail, gcTime: 0 });
-  const resetMutation = useMutation({ mutationFn: ({ token: resetToken, password }: { token: string; password: string }) => resetPassword(resetToken, password), gcTime: 0 });
+  const verificationMutation = useMutation({
+    mutationFn: async (verificationToken: string) => {
+      await verifyEmail(verificationToken);
+      await refresh();
+    },
+    gcTime: 0,
+  });
+  const resetMutation = useMutation({
+    mutationFn: async ({ token: resetToken, password }: { token: string; password: string }) => {
+      await resetPassword(resetToken, password);
+      await refresh();
+    },
+    gcTime: 0,
+  });
   const pending = verificationMutation.isPending || resetMutation.isPending;
 
   const confirmVerification = async () => {
@@ -24,7 +36,6 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
 
     try {
       await verificationMutation.mutateAsync(token);
-      await refresh();
       setMessage(
         "Your email address is verified. Sign in if you are not already signed in.",
       );
@@ -57,7 +68,6 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
     try {
       await resetMutation.mutateAsync({ token, password: newPassword });
       form.reset();
-      await refresh();
       setMessage(
         "Your password was reset and your previous sessions were signed out. Sign in with your new password.",
       );
