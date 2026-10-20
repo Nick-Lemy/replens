@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
-import { ExerciseGallery, ExercisePhoto } from "../components/ExercisePhoto";
+import { ExerciseGallery, ExercisePhoto, PhotoCredit } from "../components/ExercisePhoto";
 import { Icon } from "../components/Icon";
-import {
-  exerciseGroups,
-  exercises,
-  type ExerciseGroup,
-} from "../content/exercises";
+import { useExerciseCatalog } from "../features/exercises/ExerciseCatalogProvider";
+import { ExerciseApiError, fetchExerciseGuide } from "../features/exercises/api";
+import type { Exercise, ExerciseGroup } from "../features/exercises/types";
 
 function readSelection() {
   const [, id = "", section] = window.location.hash.slice(1).split("/");
@@ -34,14 +32,44 @@ export function Guide() {
   const [selection, setSelection] = useState(readSelection);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<ExerciseGroup>("All");
+  const [detail, setDetail] = useState<Exercise | null>(null);
+  const [detailStatus, setDetailStatus] = useState<"idle" | "loading" | "ready" | "not-found" | "unavailable">("idle");
+  const [loadedExerciseId, setLoadedExerciseId] = useState("");
+  const [detailRetry, setDetailRetry] = useState(0);
+  const { catalog, loading: catalogLoading, error: catalogError, loadCatalog } = useExerciseCatalog();
   useEffect(() => {
     const changed = () => setSelection(readSelection());
     window.addEventListener("hashchange", changed);
     return () => window.removeEventListener("hashchange", changed);
   }, []);
-  const exercise = exercises.find((item) => item.id === selection.id);
+  useEffect(() => {
+    if (selection.id) return;
+    void loadCatalog();
+  }, [selection.id, loadCatalog]);
+  useEffect(() => {
+    if (!selection.id) return;
+    const controller = new AbortController();
+    setDetail(null);
+    setDetailStatus("loading");
+    setLoadedExerciseId("");
+    void fetchExerciseGuide(selection.id, controller.signal)
+      .then((item) => {
+        if (controller.signal.aborted) return;
+        setDetail(item);
+        setLoadedExerciseId(selection.id);
+        setDetailStatus("ready");
+      })
+      .catch((failure: unknown) => {
+        if (controller.signal.aborted) return;
+        setLoadedExerciseId(selection.id);
+        setDetailStatus(failure instanceof ExerciseApiError && failure.status === 404 ? "not-found" : "unavailable");
+      });
+    return () => controller.abort();
+  }, [selection.id, detailRetry]);
+  const exercise = detail?.id === selection.id ? detail : null;
+  const visibleDetailStatus = loadedExerciseId === selection.id ? detailStatus : "loading";
 
-  if (selection.id && !exercise) {
+  if (selection.id && visibleDetailStatus === "not-found") {
     return (
       <>
         <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">
@@ -54,6 +82,30 @@ export function Guide() {
           <Icon className="size-4.5" name="back" />
           Back to exercises
         </a>
+      </>
+    );
+  }
+
+  if (selection.id && visibleDetailStatus === "unavailable") {
+    return (
+      <>
+        <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">
+          Guide unavailable
+        </h1>
+        <p className="text-muted text-sm leading-[1.75] mt-3" role="alert">
+          {navigator.onLine ? "This exercise guide could not be loaded. Try again." : "You’re offline. Reconnect to load this exercise guide."}
+        </p>
+        <button className="min-h-11 mt-4 text-xs text-accent underline-offset-4 hover:underline" onClick={() => setDetailRetry((value) => value + 1)}>Retry</button>
+        <a href="#guide" className="block min-h-11 mt-2 text-xs text-muted underline-offset-4 hover:underline">Back to exercises</a>
+      </>
+    );
+  }
+
+  if (selection.id && visibleDetailStatus === "loading") {
+    return (
+      <>
+        <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">Loading exercise guide…</h1>
+        <a href="#guide" className="block min-h-11 mt-4 text-xs text-muted underline-offset-4 hover:underline">Back to exercises</a>
       </>
     );
   }
@@ -81,7 +133,7 @@ export function Guide() {
           <div className="grid gap-4.5 content-start">
             <ExerciseGallery
               key={exercise.id}
-              exerciseId={exercise.id}
+              photos={exercise.photos}
               name={exercise.name}
             />
             <dl className="grid gap-5 bg-[#20231e] p-6 rounded-[17px]">
@@ -186,8 +238,26 @@ export function Guide() {
     );
   }
 
+  if (catalogLoading || !catalog) {
+    return (
+      <>
+        <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium mt-3">
+          {catalogError ? "Exercise guides unavailable" : "Loading exercises…"}
+        </h1>
+        {catalogError ? (
+          <>
+            <p className="text-muted text-sm leading-[1.75] mt-3" role="alert">
+              {!navigator.onLine ? "You’re offline. Reconnect to load exercise guides." : catalogError}
+            </p>
+            <button className="min-h-11 mt-4 text-xs text-accent underline-offset-4 hover:underline" onClick={() => void loadCatalog(true)}>Retry</button>
+          </>
+        ) : <p className="text-muted text-sm mt-3" role="status">Loading exercise guides from the API…</p>}
+      </>
+    );
+  }
+
   const terms = query.toLowerCase().trim().split(/\s+/).filter(Boolean);
-  const filtered = exercises.filter((item) => {
+  const filtered = catalog.items.filter((item) => {
     const text =
       `${item.name} ${item.equipment} ${item.focus} ${item.group}`.toLowerCase();
     return (
@@ -230,7 +300,7 @@ export function Guide() {
         role="group"
         aria-label="Filter exercises by body area"
       >
-        {exerciseGroups.map((item) => (
+        {catalog.groups.map((item) => (
           <button
             className="shrink-0 min-h-11.5 text-xs py-2.5 px-px border-b-2 border-b-transparent text-muted aria-pressed:border-accent aria-pressed:text-accent"
             key={item}
@@ -251,7 +321,7 @@ export function Guide() {
             key={item.id}
             href={`#guide/${item.id}`}
           >
-            <ExercisePhoto exerciseId={item.id} alt="" variant="thumbnail" />
+            <ExercisePhoto photos={item.photos} alt="" variant="thumbnail" />
             <div className="min-w-0">
               <h2 className="text-[13px] font-medium leading-normal">
                 {item.name}
@@ -265,36 +335,13 @@ export function Guide() {
         ))}
       </div>
       {filtered.some((item) => item.id === "bird-dog") && (
-        <p className="text-[10px] leading-[1.8] text-muted mt-5.75">
-          Bird-dog photo:{" "}
-          <a
-            className="underline underline-offset-3"
-            href="https://www.ptpioneer.com/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            PTPioneer
-          </a>{" "}
-          ·{" "}
-          <a
-            className="underline underline-offset-3"
-            href="https://creativecommons.org/licenses/by/2.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            CC BY 2.0
-          </a>{" "}
-          ·{" "}
-          <a
-            className="underline underline-offset-3"
-            href="https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Source
-          </a>
-          . Thumbnail resized and cropped.
-        </p>
+        <div className="mt-5.75">
+          <PhotoCredit
+            photos={catalog.items.find((item) => item.id === "bird-dog")?.photos ?? null}
+            prefix="Bird-dog photo"
+            note="Thumbnail resized and cropped."
+          />
+        </div>
       )}
       {filtered.length === 0 && (
         <section className="py-8.75 px-5 text-center border border-[#ffffff12] rounded-2xl">
