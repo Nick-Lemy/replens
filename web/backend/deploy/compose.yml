@@ -5,7 +5,7 @@ services:
     environment:
       POSTGRES_DB: replens
       POSTGRES_USER: replens
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
@@ -28,10 +28,10 @@ services:
       NODE_ENV: production
       HOST: 0.0.0.0
       PORT: 3000
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in deploy/.env}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in deploy/.env}
-      BETTER_AUTH_URL: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
-      FRONTEND_ORIGINS: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
+      DATABASE_URL: ${DATABASE_URL:?}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      BETTER_AUTH_URL: ${FRONTEND_ORIGIN:?}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGIN:?}
       TRUSTED_PROXY_CIDRS: ${CADDY_EDGE_IP:-172.29.240.2}/32
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
@@ -68,10 +68,10 @@ services:
     profiles: ["ops"]
     environment:
       NODE_ENV: production
-      DATABASE_URL: ${DATABASE_URL:?Set DATABASE_URL in deploy/.env}
-      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?Set BETTER_AUTH_SECRET in deploy/.env}
-      BETTER_AUTH_URL: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
-      FRONTEND_ORIGINS: ${FRONTEND_ORIGIN:?Set FRONTEND_ORIGIN in deploy/.env}
+      DATABASE_URL: ${DATABASE_URL:?}
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?}
+      BETTER_AUTH_URL: ${FRONTEND_ORIGIN:?}
+      FRONTEND_ORIGINS: ${FRONTEND_ORIGIN:?}
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       EMAIL_FROM: ${EMAIL_FROM:-}
     networks:
@@ -84,7 +84,7 @@ services:
     image: caddy:2-alpine
     restart: unless-stopped
     environment:
-      API_HOST: ${API_HOST:?Set API_HOST in deploy/.env}
+      API_HOST: ${API_HOST:?}
     ports:
       - "${PUBLIC_BIND_ADDRESS:-0.0.0.0}:${HTTP_HOST_PORT:-80}:80"
       - "${PUBLIC_BIND_ADDRESS:-0.0.0.0}:${HTTPS_HOST_PORT:-443}:443"
