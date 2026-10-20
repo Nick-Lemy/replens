@@ -85,7 +85,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
   const isVerification = kind === "verify-email";
 
   return (
-    <section className="max-w-120 m-auto bg-surface border border-[#ffffff08] rounded-[20px] p-6.25 sm:p-8">
+    <section className="max-w-120 m-auto bg-surface border border-line rounded-[20px] p-6.25 sm:p-8">
       <h1 className="text-[clamp(28px,4vw,34px)] leading-[1.08] tracking-[-0.04em] font-medium">
         {isVerification ? "Confirm your email" : "Choose a new password"}
       </h1>
@@ -107,7 +107,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
           {!isVerification && (
             <button
               type="button"
-              className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-5"
+              className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent mt-5"
               onClick={openAccount}
             >
               Sign in
@@ -120,7 +120,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
             <button
               type="button"
               disabled={pending}
-              className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6"
+              className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent mt-6"
               onClick={() => void confirmVerification()}
             >
               {pending ? "Please wait…" : "Confirm email"}
@@ -130,11 +130,11 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
               className="grid gap-4 mt-6"
               onSubmit={(event) => void submitReset(event)}
             >
-              <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+              <label className="grid gap-[9px] text-xs text-secondary">
                 New password
                 <input
                   disabled={pending}
-                  className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground"
+                  className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground"
                   required
                   name="newPassword"
                   type="password"
@@ -143,11 +143,11 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
                   autoComplete="new-password"
                 />
               </label>
-              <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+              <label className="grid gap-[9px] text-xs text-secondary">
                 Confirm new password
                 <input
                   disabled={pending}
-                  className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground"
+                  className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground"
                   required
                   name="confirmation"
                   type="password"
@@ -158,7 +158,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
               </label>
               <button
                 disabled={pending}
-                className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]"
+                className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent"
               >
                 {pending ? "Please wait…" : "Reset password"}
               </button>

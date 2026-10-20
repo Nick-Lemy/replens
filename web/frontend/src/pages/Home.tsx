@@ -20,7 +20,7 @@ export function Home() {
       </div>
 
       <section
-        className="overflow-hidden rounded-[22px] bg-[#20231f] sm:max-w-130 sm:ml-auto sm:mr-auto"
+        className="overflow-hidden rounded-[22px] bg-surface-soft sm:max-w-130 sm:ml-auto sm:mr-auto"
         aria-labelledby="workout-title"
       >
         <a
@@ -47,15 +47,15 @@ export function Home() {
                 {curl ? `${curl.group} · ${curl.equipment}` : "Exercise guide and photo"}
               </p>
             </div>
-            <Icon className="size-6.25 text-[#a5af99]" name="dumbbell" />
+            <Icon className="size-6.25 text-secondary" name="dumbbell" />
           </div>
           <a
-            className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]"
+            className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent"
             href="#live"
           >
             Start live session
           </a>
-          <p className="text-[10px] leading-[1.6] text-[#b2b9a9] mt-3.25">
+          <p className="text-[10px] leading-[1.6] text-secondary mt-3.25">
             Counts completed two-arm curls during live sessions. Reps-left
             estimates are not available.
           </p>
@@ -69,11 +69,11 @@ export function Home() {
       </section>
 
       <a
-        className="flex items-center gap-3.5 mt-4.5 pt-4.25 px-0.5 pb-5.5 border-b border-b-[#ffffff12] sm:max-w-130 sm:ml-auto sm:mr-auto"
+        className="flex items-center gap-3.5 mt-4.5 pt-4.25 px-0.5 pb-5.5 border-b border-b-line sm:max-w-130 sm:ml-auto sm:mr-auto"
         href="#guide/two-arm-dumbbell-curl"
       >
-        <span className="flex items-center justify-center size-11 rounded-full bg-[#ffffff06]">
-          <Icon className="size-5 text-[#b4bdab]" name="guide" />
+        <span className="flex items-center justify-center size-11 rounded-full bg-control">
+          <Icon className="size-5 text-secondary" name="guide" />
         </span>
         <div>
           <h2 className="text-[13px] font-medium">Curl guide</h2>

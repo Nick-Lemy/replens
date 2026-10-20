@@ -93,7 +93,7 @@ export function SessionDetailDialog({
   return (
     <dialog
       ref={dialogRef}
-      className="fixed inset-0 m-auto p-6 bg-[#1b1f18] text-foreground border border-[#ffffff1c] rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
+      className="fixed inset-0 m-auto p-6 bg-surface text-foreground border border-line rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
       aria-labelledby="session-detail-title"
       onCancel={(event) => { event.preventDefault(); close(); }}
       onClose={close}
@@ -116,13 +116,13 @@ export function SessionDetailDialog({
           </dl>
           <p className="text-xs text-muted leading-[1.7] mt-5">This is a saved live counting summary. It contains no video, pose landmarks or reps-left estimate.</p>
           {!confirmDelete ? (
-            <button className="min-h-11 mt-5 text-xs text-[#d7a4a0] underline underline-offset-4" onClick={() => setConfirmDelete(true)}>Delete session</button>
+            <button className="min-h-11 mt-5 text-xs text-danger-text underline underline-offset-4" onClick={() => setConfirmDelete(true)}>Delete session</button>
           ) : (
-            <div className="mt-5 p-4 rounded-xl border border-[#ffffff17]">
+            <div className="mt-5 p-4 rounded-xl border border-line">
               <p className="text-sm">Delete this saved summary from your history?</p>
               <p className="text-xs text-muted leading-[1.7] mt-2">This action cannot be undone.</p>
               {visibleDeleteError && <p className="mt-3 text-xs text-accent" role="alert">{visibleDeleteError}</p>}
-              <button className="flex items-center justify-center min-h-12 rounded-xl py-3 px-4 text-xs font-semibold w-full bg-[#733e39] text-white mt-4 disabled:opacity-60" disabled={deletePending} onClick={() => void confirmDeletion()}>
+              <button className="flex items-center justify-center min-h-12 rounded-xl py-3 px-4 text-xs font-semibold w-full bg-danger text-white mt-4 disabled:opacity-60" disabled={deletePending} onClick={() => void confirmDeletion()}>
                 {deletePending ? "Deleting…" : "Confirm delete"}
               </button>
               <button className="min-h-11 mt-2 text-xs text-muted underline underline-offset-4" disabled={deletePending} onClick={() => { setConfirmDelete(false); deletion.reset(); }}>Cancel</button>
@@ -130,7 +130,7 @@ export function SessionDetailDialog({
           )}
         </>
       )}
-      <button className="flex items-center justify-center min-h-11 rounded-xl px-5 text-xs border border-[#ffffff26] w-full mt-5" disabled={deletePending} onClick={close}>Close</button>
+      <button className="flex items-center justify-center min-h-11 rounded-xl px-5 text-xs border border-line w-full mt-5" disabled={deletePending} onClick={close}>Close</button>
     </dialog>
   );
 }
