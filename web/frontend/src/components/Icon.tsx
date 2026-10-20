@@ -17,6 +17,8 @@ const paths = {
   dumbbell: "M7 7v10 M4 9v6 M17 7v10 M20 9v6 M7 12h10",
   clock: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 7v5l3 2",
   info: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0 M12 11v6 M12 7v1",
+  sun: "M12 3v2 M12 19v2 M5.64 5.64l1.42 1.42 M16.94 16.94l1.42 1.42 M3 12h2 M19 12h2 M5.64 18.36l1.42-1.42 M16.94 7.06l1.42-1.42 M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0",
+  moon: "M20.5 14.2A8 8 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z",
 } as const;
 
 export type IconName = keyof typeof paths;

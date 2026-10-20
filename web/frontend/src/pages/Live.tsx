@@ -155,7 +155,7 @@ export function Live({
           </h1>
         </div>
         <a
-          className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full"
+          className="size-11 inline-flex items-center justify-center bg-control border border-line rounded-full"
           href="#guide/two-arm-dumbbell-curl/setup"
           aria-label="Open camera setup guide"
         >
@@ -164,13 +164,13 @@ export function Live({
       </div>
       <div className="grid gap-5.5 lg:grid-cols-[minmax(0,1.25fr)_minmax(260px,0.85fr)] lg:items-start">
         <div>
-          <div className="relative aspect-4/5 max-h-150 bg-[#232720] overflow-hidden rounded-[22px] border border-[#ffffff13] lg:max-h-142.5">
+          <div className="relative aspect-4/5 max-h-150 bg-surface-soft overflow-hidden rounded-[22px] border border-line lg:max-h-142.5">
             <video
               ref={video}
               muted
               autoPlay
               playsInline
-              className={`h-full w-full object-contain bg-[#1d211a] ${facing === "user" ? "-scale-x-100" : ""}`}
+              className={`h-full w-full object-contain ${stream ? "bg-[#141613]" : "bg-surface-raised"} ${facing === "user" ? "-scale-x-100" : ""}`}
               onClick={() => {
                 void video.current
                   ?.play()
@@ -192,12 +192,12 @@ export function Live({
               />
             )}
             <div className="absolute top-4.5 left-4.5 right-4.5 flex justify-between items-center">
-              <span className="text-foreground text-[11px] bg-[#14161399] py-2 px-2.75 rounded-lg">
+              <span className="text-white text-[11px] bg-[#14161399] py-2 px-2.75 rounded-lg">
                 {stream ? "Camera on" : "Camera off"}
               </span>
               {stream && (
                 <button
-                  className="size-11 inline-flex items-center justify-center bg-[#14161399] border border-[#ffffff1a] rounded-full"
+                  className="size-11 inline-flex items-center justify-center bg-[#14161399] border border-white/20 rounded-full text-white"
                   aria-label="Switch camera"
                   disabled={running || countdown !== null || busy}
                   onClick={() => {
@@ -212,8 +212,8 @@ export function Live({
             </div>
             {!stream && (
               <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center">
-                <div className="size-17.5 border border-[#68765a] rounded-3xl grid place-items-center mb-6.25">
-                  <Icon className="size-7.25 text-[#b9c5aa]" name="camera" />
+                <div className="size-17.5 border border-line rounded-3xl grid place-items-center mb-6.25">
+                  <Icon className="size-7.25 text-secondary" name="camera" />
                 </div>
                 <h2 className="text-[23px] tracking-[-0.03em]">
                   Your set starts here.
@@ -224,7 +224,7 @@ export function Live({
                   Keep both arms in the frame.
                 </p>
                 <button
-                  className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] max-w-62.5"
+                  className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent max-w-62.5"
                   disabled={busy}
                   onClick={() => {
                     setFinished(false);
@@ -237,7 +237,7 @@ export function Live({
                 </button>
                 {busy && (
                   <button
-                    className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline"
+                    className="text-secondary text-xs p-2.5 underline-offset-4 hover:underline"
                     onClick={stop}
                   >
                     Cancel
@@ -255,7 +255,7 @@ export function Live({
             )}
             {countdown !== null && countdown > 0 && (
               <div
-                className="absolute inset-0 grid place-items-center text-[100px] bg-[#14161370] font-medium"
+                className="absolute inset-0 grid place-items-center text-[100px] bg-[#14161370] text-white font-medium"
                 role="status"
                 aria-live="assertive"
               >
@@ -275,7 +275,7 @@ export function Live({
           </div>
           {liveError && (
             <p
-              className="bg-[#f2b85b0a] text-[#c6cbbd] py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546] mt-4"
+              className="bg-accent-soft text-secondary py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line mt-4"
               role="alert"
             >
               {liveError}
@@ -313,7 +313,7 @@ export function Live({
           </div>
         </div>
         <div className="grid gap-5 content-start">
-          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
+          <section className="bg-surface border border-line rounded-[20px] p-6.25">
             <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18]">
               Camera setup
             </h2>
@@ -331,7 +331,7 @@ export function Live({
                 </li>
               ))}
             </ul>
-            <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546] mt-5">
+            <p className="bg-accent-soft text-secondary py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line mt-5">
               Completed two-arm curls are counted during the session. Reps-left
               estimates are not available.
             </p>
@@ -339,7 +339,7 @@ export function Live({
               <div className="mt-5 grid gap-3">
                 {running ? (
                   <button
-                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]"
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent"
                     onClick={end}
                   >
                     End session
@@ -347,14 +347,14 @@ export function Live({
                   </button>
                 ) : countdown !== null ? (
                   <button
-                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03]"
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-line bg-control"
                     onClick={() => setCountdown(null)}
                   >
                     Cancel countdown
                   </button>
                 ) : (
                   <button
-                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] disabled:opacity-50"
+                    className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent disabled:opacity-50"
                     disabled={!tracking.ready}
                     onClick={() => {
                       setFinished(false);
@@ -367,7 +367,7 @@ export function Live({
                 )}
                 {!running && (
                   <button
-                    className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline"
+                    className="text-secondary text-xs p-2.5 underline-offset-4 hover:underline"
                     onClick={stop}
                   >
                     Turn off camera
@@ -378,7 +378,7 @@ export function Live({
           </section>
           {finished && (
             <section
-              className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25"
+              className="bg-surface border border-line rounded-[20px] p-6.25"
               role="status"
             >
               <p className="text-muted text-sm leading-[1.75]">

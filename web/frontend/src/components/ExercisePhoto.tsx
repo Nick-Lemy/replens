@@ -101,7 +101,7 @@ export function ExerciseGallery({
       />
       {photos?.images.length > 1 && (
         <div
-          className="flex gap-5 py-[3px] px-0 border-b border-b-[#ffffff12]"
+          className="flex gap-5 py-[3px] px-0 border-b border-b-line"
           role="group"
           aria-label="Exercise demonstration photos"
         >
@@ -118,7 +118,7 @@ export function ExerciseGallery({
       )}
       <figcaption>
         {photos?.variation && (
-          <p className="text-xs leading-[1.7] text-[#c4ccba] mt-[15px]">{photos.variation}</p>
+          <p className="text-xs leading-[1.7] text-secondary mt-[15px]">{photos.variation}</p>
         )}
         <PhotoCredit photos={photos} />
       </figcaption>

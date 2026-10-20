@@ -9,6 +9,7 @@ import { Profile, type Preferences } from "./pages/Profile";
 import { useAuth } from "./features/auth/AuthProvider";
 import { useInstall } from "./hooks/useInstall";
 import { EmailAccessLink } from "./pages/EmailAccessLink";
+import { useTheme } from "./features/theme/ThemeProvider";
 
 const navigation: { id: string; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -54,6 +55,7 @@ export function App() {
   const [offline, setOffline] = useState(!navigator.onLine);
   const installer = useInstall();
   const { user, status, error, refresh } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const changed = () => {
@@ -101,7 +103,7 @@ export function App() {
       >
         Skip to content
       </a>
-      <aside className="hidden lg:flex lg:flex-col lg:py-9.75 lg:px-6.75 lg:border-r lg:border-r-[#ffffff0f] lg:sticky lg:top-0 lg:h-dvh">
+      <aside className="hidden lg:flex lg:flex-col lg:py-9.75 lg:px-6.75 lg:border-r lg:border-r-line lg:sticky lg:top-0 lg:h-dvh">
         <a
           className="inline-flex items-center text-[25px] font-bold tracking-[-1.2px]"
           href="#home"
@@ -119,7 +121,7 @@ export function App() {
         >
           {navigation.map((item) => (
             <a
-              className="group lg:min-h-12 lg:p-3.25 lg:rounded-[10px] lg:text-xs lg:flex lg:items-center lg:gap-3.25 lg:text-muted lg:aria-[current=page]:bg-[#f2b85b12] lg:aria-[current=page]:text-accent"
+              className="group lg:min-h-12 lg:p-3.25 lg:rounded-[10px] lg:text-xs lg:flex lg:items-center lg:gap-3.25 lg:text-muted lg:aria-[current=page]:bg-accent-soft lg:aria-[current=page]:text-accent"
               key={item.id}
               href={`#${item.id}`}
               aria-current={route === item.id ? "page" : undefined}
@@ -146,7 +148,15 @@ export function App() {
           </a>
           <div className="flex items-center gap-3.5">
             <button
-              className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full"
+              type="button"
+              className="size-11 inline-flex items-center justify-center bg-control border border-line rounded-full text-foreground"
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} theme`}
+              onClick={toggleTheme}
+            >
+              <Icon className="size-4.75" name={theme === "dark" ? "sun" : "moon"} />
+            </button>
+            <button
+              className="size-11 inline-flex items-center justify-center bg-control border border-line rounded-full"
               aria-label={user ? "Open profile" : "Open account setup"}
               onClick={(event) => { if (user) window.location.hash = "profile"; else openAccount(event); }}
             >
@@ -156,7 +166,7 @@ export function App() {
         </header>
         {offline && (
           <div
-            className="py-3 px-5.5 text-xs bg-[#f2b85b17] text-[#d8c59f]"
+            className="py-3 px-5.5 text-xs bg-accent-soft text-secondary"
             role="status"
           >
             You’re offline. Reconnect to load exercise guides, saved history or tracking files.
@@ -197,12 +207,12 @@ export function App() {
           {(route === "verify-email" || route === "reset-password") && <EmailAccessLink key={`${route}:${linkToken}`} kind={route} token={linkToken} openAccount={() => openAccount()} />}
         </main>
         <nav
-          className="fixed bottom-0 left-0 right-0 z-10 flex bg-[#1b1e1af5] border-t border-t-[#ffffff10] p-[13px_12px_calc(13px+env(safe-area-inset-bottom))] backdrop-blur-lg lg:hidden"
+          className="fixed bottom-0 left-0 right-0 z-10 flex bg-background/95 border-t border-t-line p-[13px_12px_calc(13px+env(safe-area-inset-bottom))] backdrop-blur-lg lg:hidden"
           aria-label="Main navigation"
         >
           {navigation.map((item) => (
             <a
-              className="min-h-11 flex flex-1 flex-col items-center justify-center gap-1.75 text-[#959d8e] aria-[current=page]:text-accent"
+              className="min-h-11 flex flex-1 flex-col items-center justify-center gap-1.75 text-muted aria-[current=page]:text-accent"
               key={item.id}
               href={`#${item.id}`}
               aria-current={route === item.id ? "page" : undefined}

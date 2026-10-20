@@ -20,7 +20,7 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
   return (
     <dialog
       ref={ref}
-      className="fixed inset-0 m-auto py-[35px] px-6.5 bg-[#1b1f18] text-foreground border border-[#ffffff1c] rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
+      className="fixed inset-0 m-auto py-[35px] px-6.5 bg-surface text-foreground border border-line rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
       onCancel={close}
       onClick={(event) => {
         const rect = ref.current?.getBoundingClientRect();
@@ -36,7 +36,7 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
       aria-labelledby="account-title"
     >
       <button
-        className="size-11 inline-flex items-center justify-center bg-[#ffffff06] border border-[#ffffff1a] rounded-full absolute right-5 top-5"
+        className="size-11 inline-flex items-center justify-center bg-control border border-line rounded-full absolute right-5 top-5"
         aria-label="Close account form"
         onClick={close}
       >
@@ -63,10 +63,10 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
           setResetMessage("If an account matches this address, check your inbox for a reset link.");
         } catch {}
       }}>
-        <label className="grid gap-[9px] text-xs text-[#c6cbbd]">Email<input disabled={resetPending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]" required name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
-        {resetMessage && <p role="status" className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]">{resetMessage}</p>}
-        {resetMutation.error && <p role="alert" className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]">{resetMutation.error.message}</p>}
-        <button disabled={resetPending} className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">{resetPending ? "Please wait…" : "Request reset link"}</button>
+        <label className="grid gap-[9px] text-xs text-secondary">Email<input disabled={resetPending} className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground placeholder:text-placeholder" required name="email" type="email" autoComplete="email" placeholder="you@example.com" /></label>
+        {resetMessage && <p role="status" className="bg-accent-soft text-secondary py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line">{resetMessage}</p>}
+        {resetMutation.error && <p role="alert" className="bg-accent-soft text-secondary py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line">{resetMutation.error.message}</p>}
+        <button disabled={resetPending} className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent">{resetPending ? "Please wait…" : "Request reset link"}</button>
       </form> : <form
         className="mt-6 grid gap-4"
         onSubmit={async (event) => {
@@ -83,14 +83,14 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
         }}
       >
         {mode === "signup" && (
-          <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+          <label className="grid gap-[9px] text-xs text-secondary">
             Name
-            <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]" required name="name" maxLength={80} pattern={".*\\S.*"} autoComplete="name" placeholder="Your name" />
+            <input disabled={pending} className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground placeholder:text-placeholder" required name="name" maxLength={80} pattern={".*\\S.*"} autoComplete="name" placeholder="Your name" />
           </label>
         )}
-        <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+        <label className="grid gap-[9px] text-xs text-secondary">
           Email
-          <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
+          <input disabled={pending} className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground placeholder:text-placeholder"
             required
             name="email"
             type="email"
@@ -98,9 +98,9 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
             placeholder="you@example.com"
           />
         </label>
-        <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+        <label className="grid gap-[9px] text-xs text-secondary">
           Password
-          <input disabled={pending} className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
+          <input disabled={pending} className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground placeholder:text-placeholder"
             required
             name="password"
             type="password"
@@ -113,16 +113,16 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
           />
         </label>
         {attempted && error && (
-          <p className="bg-[#f2b85b0a] text-[#c6cbbd] py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-[#a98546]" role="alert">
+          <p className="bg-accent-soft text-secondary py-[13px] px-[15px] rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line" role="alert">
             {error}
           </p>
         )}
-        <button disabled={pending} className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b]">
+        <button disabled={pending} className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent">
           {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>}
       <button
-        className="text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline mt-6 w-full"
+        className="text-secondary text-xs p-2.5 underline-offset-4 hover:underline mt-6 w-full"
         disabled={pending || resetPending}
         onClick={() => {
           setMode(mode === "signin" ? "signup" : "signin");
@@ -134,7 +134,7 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
           ? "New here? Create an account"
           : "Already have an account? Sign in"}
       </button>
-      {mode === "signin" && <button className="min-h-11 text-[#c9d0bf] text-xs p-2.5 underline-offset-4 hover:underline w-full" type="button" disabled={pending || resetPending} onClick={() => { setMode("forgot"); setAttempted(false); }}>Forgot password?</button>}
+      {mode === "signin" && <button className="min-h-11 text-secondary text-xs p-2.5 underline-offset-4 hover:underline w-full" type="button" disabled={pending || resetPending} onClick={() => { setMode("forgot"); setAttempted(false); }}>Forgot password?</button>}
     </dialog>
   );
 }

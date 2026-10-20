@@ -42,10 +42,10 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
   if (editing) {
     return (
       <form className="mt-5 grid gap-3" onSubmit={(event) => void saveName(event)}>
-        <label className="grid gap-[9px] text-xs text-[#c6cbbd]">
+        <label className="grid gap-[9px] text-xs text-secondary">
           Display name
           <input
-            className="w-full bg-[#272c22] p-3.5 rounded-[9px] border border-[#ffffff17] text-base text-foreground placeholder:text-[#859078]"
+            className="w-full bg-input p-3.5 rounded-[9px] border border-line text-base text-foreground placeholder:text-placeholder"
             name="name"
             defaultValue={user.name}
             autoComplete="name"
@@ -62,14 +62,14 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
           <button
             type="submit"
             disabled={pending || disabled}
-            className="flex flex-1 items-center justify-center min-h-11 rounded-xl px-4 text-xs font-semibold bg-accent text-[#22281b] disabled:opacity-60"
+            className="flex flex-1 items-center justify-center min-h-11 rounded-xl px-4 text-xs font-semibold bg-accent text-on-accent disabled:opacity-60"
           >
             {pending ? "Saving…" : "Save name"}
           </button>
           <button
             type="button"
             disabled={pending || disabled}
-            className="flex flex-1 items-center justify-center min-h-11 rounded-xl px-4 text-xs border border-[#ffffff26] disabled:opacity-60"
+            className="flex flex-1 items-center justify-center min-h-11 rounded-xl px-4 text-xs border border-line disabled:opacity-60"
             onClick={() => { setEditing(false); mutation.reset(); }}
           >
             Cancel

@@ -4,6 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#141613" />
+    <script>
+      (() => {
+        let theme;
+        try {
+          const saved = localStorage.getItem("replens.theme");
+          if (saved === "light" || saved === "dark") theme = saved;
+        } catch {}
+        if (!theme) {
+          theme = window.matchMedia?.("(prefers-color-scheme: light)").matches
+            ? "light"
+            : "dark";
+        }
+        const root = document.documentElement;
+        root.dataset.theme = theme;
+        root.style.colorScheme = theme;
+        document.querySelector('meta[name="theme-color"]')?.setAttribute(
+          "content",
+          theme === "dark" ? "#141613" : "#f5f6f2",
+        );
+      })();
+    </script>
     <meta
       name="description"
       content="RepLens: live feedback for two-arm dumbbell curls."
