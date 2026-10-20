@@ -24,7 +24,7 @@ Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend to
 - Account forms with native validation and real persisted signup/signin through Better Auth. Sessions restore through `/api/me`; unavailable and expired sessions are handled without fabricated identity.
 - Bottom navigation on phones, sidebar on larger screens, hash navigation with browser Back support, keyboard focus styles and a native modal dialog.
 
-Rep tracking, RIR inference, authenticated history and saved sessions remain unimplemented. Rep and RIR fields display unavailable marks rather than example predictions. Exercise photos are static guide references; they are not live footage or model outputs.
+Live two-arm curl counting runs in a browser worker using the versioned MediaPipe full-pose model served by the API. Video frames and landmarks are processed in the browser and are not sent to the API; live counts stay in memory and are not saved. The reps-left field remains unavailable, with no RIR inference. One full smoke run on the public curl clip counted 8 of 10 manually identified cycles before recent angle and movement-plausibility corrections; the updated counter needs independent full-clip review, and this single clip is not an accuracy benchmark. Authenticated history and saved sessions remain unimplemented. Exercise photos are static guide references; they are not live footage or model outputs.
 
 ## PWA
 
@@ -65,7 +65,7 @@ The mobile redesign uses compact titles, a single-column home screen, a fixed bo
 
 ## Exercise library and future support
 
-`src/content/exercises.ts` is the typed, locally bundled guide catalog. It covers arms, chest, back, shoulders, legs and core. The current research still concerns simultaneous two-arm dumbbell curls; adding guides does not add tracking or validated RIR support. `cameraPreview` is true only for that curl variation. The standing curl guide links explicitly to a related seated-curl reference, rather than claiming identical posture. Other guides link to their specific ACE technique pages.
+`src/content/exercises.ts` is the typed, locally bundled guide catalog. It covers arms, chest, back, shoulders, legs and core. The current research still concerns simultaneous two-arm dumbbell curls; other guides do not have tracking or validated RIR support. `cameraPreview` is true only for that curl variation. The standing curl guide links explicitly to a related seated-curl reference, rather than claiming identical posture. Other guides link to their specific ACE technique pages.
 
 To add a guide, supply a stable ID, display name, body area, equipment, focus, steps, tips and reference URL. Model support needs a separate evaluated pipeline for the exercise; do not turn on camera or prediction affordances merely because an exercise has guide content. No ACE photos/videos are copied into the app. Sources and photos are hosted externally and require a connection unless already in the browser HTTP cache. The service worker does not cache them; bundled guide text remains part of the public offline shell.
 
