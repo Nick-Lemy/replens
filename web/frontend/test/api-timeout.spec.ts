@@ -13,7 +13,7 @@ test("session read timeout includes a stalled body after successful headers", as
     },
   }), { status: 200, headers: { "Content-Type": "application/json" } });
   try {
-    await expect(currentUser(20)).rejects.toThrow("Cannot reach account services");
+    await expect(currentUser(20)).rejects.toThrow("timed out");
     expect(aborted).toBe(true);
   } finally {
     globalThis.fetch = original;

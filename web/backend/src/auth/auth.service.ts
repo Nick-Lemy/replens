@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { betterAuth } from 'better-auth';
+import { openAPI } from 'better-auth/plugins';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { DatabaseService } from '../database/database.service.js';
@@ -33,6 +34,7 @@ export class AuthService {
       secret: config.authSecret,
       database: prismaAdapter(database, { provider: 'postgresql' }),
       trustedOrigins: config.frontendOrigins,
+      plugins: [openAPI({ disableDefaultReference: true })],
       user: {
         deleteUser: {
           enabled: true,

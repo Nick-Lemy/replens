@@ -1,21 +1,12 @@
 import type { Exercise, ExerciseCatalog, ExerciseGroup, ExercisePhotoSet } from "./types";
+import { ApiError, isNonEmptyString, isRecord, requestJson } from "../api/client";
+
+export { ApiError as ExerciseApiError };
 
 const supportedCameraExercise = "two-arm-dumbbell-curl";
 const allowedGroups: ExerciseGroup[] = ["All", "Arms", "Chest", "Back", "Shoulders", "Legs", "Core"];
 
-export class ExerciseApiError extends Error {
-  constructor(message: string, public status = 0) {
-    super(message);
-  }
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function isText(value: unknown): value is string {
-  return typeof value === "string" && value.trim().length > 0;
-}
+const isText = isNonEmptyString;
 
 function isSafeHttpsUrl(value: unknown): value is string {
   if (typeof value !== "string") return false;
@@ -50,55 +41,29 @@ function isExercise(value: unknown): value is Exercise {
 
 function parseCatalog(value: unknown): ExerciseCatalog {
   if (!isRecord(value) || !Array.isArray(value.items) || !Array.isArray(value.groups)) {
-    throw new ExerciseApiError("Exercise guides returned an invalid response.");
+    throw new ApiError("Exercise guides returned an invalid response.");
   }
   if (!value.groups.every((group) => typeof group === "string" && allowedGroups.includes(group as ExerciseGroup))) {
-    throw new ExerciseApiError("Exercise guides returned an invalid response.");
+    throw new ApiError("Exercise guides returned an invalid response.");
   }
   const groups = value.groups as ExerciseGroup[];
   if (groups[0] !== "All" || new Set(groups).size !== groups.length || !value.items.every(isExercise)) {
-    throw new ExerciseApiError("Exercise guides returned an invalid response.");
+    throw new ApiError("Exercise guides returned an invalid response.");
   }
   const items = value.items as Exercise[];
   if (new Set(items.map((item) => item.id)).size !== items.length || items.some((item) => !groups.includes(item.group))) {
-    throw new ExerciseApiError("Exercise guides returned an invalid response.");
+    throw new ApiError("Exercise guides returned an invalid response.");
   }
   return { items, groups };
 }
 
 async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = window.setTimeout(() => controller.abort(), 10_000);
-  const abort = () => controller.abort();
-  if (signal?.aborted) controller.abort();
-  else signal?.addEventListener("abort", abort, { once: true });
-  try {
-    const response = await fetch(`/api/exercises${path}`, {
-      method: "GET",
-      credentials: "omit",
-      signal: controller.signal,
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      if (response.status === 404) throw new ExerciseApiError("This exercise guide could not be found.", 404);
-      if (response.status === 400) throw new ExerciseApiError("Exercise guides returned an invalid request.", 400);
-      throw new ExerciseApiError("Exercise guides are unavailable. Check your connection and try again.", response.status);
-    }
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!/(?:application\/json|application\/[^;]+\+json)(?:\s*;|$)/i.test(contentType)) {
-      await response.body?.cancel();
-      throw new ExerciseApiError("Exercise guides returned an invalid response.");
-    }
-    return await response.json();
-  } catch (failure) {
-    if (signal?.aborted) throw failure;
-    if (failure instanceof ExerciseApiError) throw failure;
-    if (controller.signal.aborted) throw new ExerciseApiError("Exercise guide request timed out. Please try again.");
-    throw new ExerciseApiError("Exercise guides are unavailable. Check your connection and try again.");
-  } finally {
-    clearTimeout(timeout);
-    signal?.removeEventListener("abort", abort);
-  }
+  return requestJson(`/api/exercises${path}`, {
+    method: "GET",
+    credentials: "omit",
+    signal,
+    timeoutMs: 10_000,
+  });
 }
 
 export async function fetchExerciseCatalog(signal?: AbortSignal): Promise<ExerciseCatalog> {
@@ -107,6 +72,6 @@ export async function fetchExerciseCatalog(signal?: AbortSignal): Promise<Exerci
 
 export async function fetchExerciseGuide(id: string, signal?: AbortSignal): Promise<Exercise> {
   const value = await getJson(`/${encodeURIComponent(id)}`, signal);
-  if (!isExercise(value) || value.id !== id) throw new ExerciseApiError("Exercise guides returned an invalid response.");
+  if (!isExercise(value) || value.id !== id) throw new ApiError("Exercise guides returned an invalid response.");
   return value;
 }

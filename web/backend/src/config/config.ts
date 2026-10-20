@@ -7,6 +7,7 @@ export interface AppConfig {
   port: number;
   host: string;
   production: boolean;
+  apiDocsEnabled: boolean;
   databaseUrl: string;
   authSecret: string;
   authUrl: string;
@@ -29,6 +30,11 @@ function defaultTrackingAssetDir(): string {
 
 export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const production = env.NODE_ENV === 'production';
+  const rawApiDocsEnabled = env.API_DOCS_ENABLED;
+  if (rawApiDocsEnabled !== undefined && rawApiDocsEnabled !== 'true' && rawApiDocsEnabled !== 'false') {
+    throw new Error('API_DOCS_ENABLED must be true or false');
+  }
+  const apiDocsEnabled = rawApiDocsEnabled === undefined ? !production : rawApiDocsEnabled === 'true';
   const port = Number(env.PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('PORT must be between 1 and 65535');
   if (!env.DATABASE_URL || !/^postgres(ql)?:\/\//.test(env.DATABASE_URL)) throw new Error('DATABASE_URL must be a PostgreSQL URL');
@@ -58,5 +64,5 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const resendApiKey = env.RESEND_API_KEY?.trim();
   const emailFrom = env.EMAIL_FROM?.trim();
   if (Boolean(resendApiKey) !== Boolean(emailFrom)) throw new Error('RESEND_API_KEY and EMAIL_FROM must be configured together');
-  return { port, host: env.HOST ?? '127.0.0.1', production, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, trackingAssetDir: resolve(env.TRACKING_ASSET_DIR ?? defaultTrackingAssetDir()), ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
+  return { port, host: env.HOST ?? '127.0.0.1', production, apiDocsEnabled, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, trackingAssetDir: resolve(env.TRACKING_ASSET_DIR ?? defaultTrackingAssetDir()), ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
 }

@@ -1,3 +1,7 @@
+import { ApiError, isRecord, isNonEmptyString, requestJson } from "../api/client";
+
+export { ApiError as AccountError };
+
 export interface AccountUser {
   id: string;
   name: string;
@@ -7,110 +11,67 @@ export interface AccountUser {
   updatedAt: string;
 }
 
-export class AccountError extends Error {
-  constructor(message: string, public status = 0) {
-    super(message);
-  }
+function parseAccountUser(value: unknown): AccountUser | null {
+  if (!isRecord(value) || !isRecord(value.user)) return null;
+  const user = value.user;
+  if (!isNonEmptyString(user.id) || !isNonEmptyString(user.name) || !isNonEmptyString(user.email)) return null;
+  if (typeof user.emailVerified !== "boolean") return null;
+  if (typeof user.createdAt !== "string" || typeof user.updatedAt !== "string") return null;
+  return user as unknown as AccountUser;
 }
 
-async function request(path: string, body?: object, timeoutMs = 15_000): Promise<unknown> {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+const privateRequest = { credentials: "include", cache: "no-store" } as const;
+
+export async function currentUser(signalOrTimeout?: AbortSignal | number): Promise<AccountUser | null> {
+  const signal = typeof signalOrTimeout === "number" ? undefined : signalOrTimeout;
+  const timeoutMs = typeof signalOrTimeout === "number" ? signalOrTimeout : 15_000;
   try {
-    const response = await fetch(`/api/${path}`, {
-      signal: controller.signal,
-      method: body ? "POST" : "GET",
-      credentials: "include",
-      cache: "no-store",
-      headers: body ? { "Content-Type": "application/json" } : undefined,
-      body: body ? JSON.stringify(body) : undefined,
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      const endpoint = path.split("?", 1)[0];
-      const message = response.status === 429
-        ? "Too many attempts. Please wait a minute before trying again."
-        : response.status === 503 && ["auth/send-verification-email", "auth/request-password-reset"].includes(endpoint)
-          ? "Email service is unavailable right now. Please try again later."
-          : response.status === 401 && endpoint === "auth/sign-in/email"
-          ? "Email or password is incorrect."
-          : response.status === 401 && endpoint === "auth/verify-email"
-            ? "This verification link is invalid or expired. Request a new link from your profile."
-          : response.status === 401 && ["auth/update-user", "auth/delete-user"].includes(endpoint)
-            ? "Your session expired. Sign in again to continue."
-            : response.status === 400 && endpoint === "auth/delete-user"
-              ? "The current password is incorrect. Check it and try again."
-              : response.status === 400 && endpoint === "auth/update-user"
-                ? "Enter a valid name between 1 and 80 characters."
-            : response.status === 400 && endpoint === "auth/reset-password"
-              ? "This reset link is invalid or expired. Request a new password reset link and try again."
-          : response.status === 422
-            ? "An account could not be created with these details. Try signing in instead."
-            : response.status === 400
-              ? "Check your details and try again."
-              : "Account services are unavailable. Please try again.";
-      throw new AccountError(message, response.status);
-    }
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!/(?:application\/json|application\/[^;]+\+json)(?:\s*;|$)/i.test(contentType)) {
-      await response.body?.cancel();
-      throw new AccountError("Account services returned an invalid response. Please try again.", response.status);
-    }
-    if (body) {
-      await response.body?.cancel();
-      return;
-    }
-    return await response.json();
+    const result = await requestJson("/api/me", { ...privateRequest, signal, timeoutMs });
+    const user = parseAccountUser(result);
+    if (!user) throw new ApiError("Account services returned an invalid response.");
+    return user;
   } catch (error) {
-    if (error instanceof AccountError) throw error;
-    throw new AccountError("Cannot reach account services. Check your connection and try again.");
-  } finally {
-    clearTimeout(timeout);
+    if (error instanceof ApiError && error.status === 401) return null;
+    throw error;
   }
 }
 
-export async function currentUser(timeoutMs = 15_000): Promise<AccountUser | null> {
-  try {
-    const data = await request("me", undefined, timeoutMs);
-    if (!data || typeof data !== "object" || !("user" in data)) throw new Error();
-    const user = data.user as Partial<AccountUser> | null;
-    if (!user || typeof user.id !== "string" || typeof user.name !== "string" || typeof user.email !== "string") throw new Error();
-    return user as AccountUser;
-  } catch (error) {
-    if (error instanceof AccountError && error.status === 401) return null;
-    if (error instanceof AccountError) throw error;
-    throw new AccountError("Account services returned an invalid response. Please try again.");
-  }
-}
-
-export async function submitAccount(mode: "signin" | "signup", details: { name?: string; email: string; password: string }) {
-  await request(`auth/${mode === "signup" ? "sign-up" : "sign-in"}/email`, details);
+export async function submitAccount(
+  mode: "signin" | "signup",
+  details: { name?: string; email: string; password: string },
+) {
+  await requestJson(`/api/auth/${mode === "signup" ? "sign-up" : "sign-in"}/email`, {
+    ...privateRequest,
+    method: "POST",
+    body: details,
+    expect: "none",
+  });
 }
 
 export async function endAccountSession() {
-  await request("auth/sign-out", {});
+  await requestJson("/api/auth/sign-out", { ...privateRequest, method: "POST", body: {}, expect: "none" });
 }
 
 export async function requestPasswordReset(email: string) {
-  await request("auth/request-password-reset", { email });
+  await requestJson("/api/auth/request-password-reset", { ...privateRequest, method: "POST", body: { email }, expect: "none" });
 }
 
 export async function sendVerificationEmail(email: string) {
-  await request("auth/send-verification-email", { email });
+  await requestJson("/api/auth/send-verification-email", { ...privateRequest, method: "POST", body: { email }, expect: "none" });
 }
 
 export async function verifyEmail(token: string) {
-  await request(`auth/verify-email?token=${encodeURIComponent(token)}`);
+  await requestJson(`/api/auth/verify-email?token=${encodeURIComponent(token)}`, { ...privateRequest, expect: "none" });
 }
 
 export async function resetPassword(token: string, newPassword: string) {
-  await request("auth/reset-password", { token, newPassword });
+  await requestJson("/api/auth/reset-password", { ...privateRequest, method: "POST", body: { token, newPassword }, expect: "none" });
 }
 
 export async function updateAccountName(name: string) {
-  await request("auth/update-user", { name });
+  await requestJson("/api/auth/update-user", { ...privateRequest, method: "POST", body: { name }, expect: "none" });
 }
 
 export async function deleteAccount(password: string) {
-  await request("auth/delete-user", { password });
+  await requestJson("/api/auth/delete-user", { ...privateRequest, method: "POST", body: { password }, expect: "none" });
 }

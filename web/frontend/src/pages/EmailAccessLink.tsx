@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { resetPassword, verifyEmail } from "../features/auth/api";
 import { useAuth } from "../features/auth/AuthProvider";
 
@@ -10,18 +11,31 @@ interface EmailAccessLinkProps {
 
 export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkProps) {
   const { refresh } = useAuth();
-  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const verificationMutation = useMutation({
+    mutationFn: async (verificationToken: string) => {
+      await verifyEmail(verificationToken);
+      await refresh();
+    },
+    gcTime: 0,
+  });
+  const resetMutation = useMutation({
+    mutationFn: async ({ token: resetToken, password }: { token: string; password: string }) => {
+      await resetPassword(resetToken, password);
+      await refresh();
+    },
+    gcTime: 0,
+  });
+  const pending = verificationMutation.isPending || resetMutation.isPending;
 
   const confirmVerification = async () => {
-    setPending(true);
+    verificationMutation.reset();
     setError("");
     setMessage("");
 
     try {
-      await verifyEmail(token);
-      await refresh();
+      await verificationMutation.mutateAsync(token);
       setMessage(
         "Your email address is verified. Sign in if you are not already signed in.",
       );
@@ -32,7 +46,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
           : "This verification link could not be confirmed.",
       );
     } finally {
-      setPending(false);
+      verificationMutation.reset();
     }
   };
 
@@ -50,11 +64,10 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
       return;
     }
 
-    setPending(true);
+    resetMutation.reset();
     try {
-      await resetPassword(token, newPassword);
+      await resetMutation.mutateAsync({ token, password: newPassword });
       form.reset();
-      await refresh();
       setMessage(
         "Your password was reset and your previous sessions were signed out. Sign in with your new password.",
       );
@@ -65,7 +78,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
           : "This reset link could not be used.",
       );
     } finally {
-      setPending(false);
+      resetMutation.reset();
     }
   };
 

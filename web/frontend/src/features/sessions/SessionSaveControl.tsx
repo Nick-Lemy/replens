@@ -1,7 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AccountUser } from "../auth/api";
 import { useAuth } from "../auth/AuthProvider";
-import { createWorkoutSession, WorkoutSessionError, type WorkoutSessionDraft } from "./api";
+import { hasCurrentSessionOwner, privateQueryKey } from "../api/queryClient";
+import { ApiError } from "../api/client";
+import { createWorkoutSession, type WorkoutSessionDraft } from "./api";
 
 export function SessionSaveControl({
   draft,
@@ -17,33 +20,48 @@ export function SessionSaveControl({
   const [savedId, setSavedId] = useState("");
   const [savedForUserId, setSavedForUserId] = useState("");
   const [boundOwnerId, setBoundOwnerId] = useState(draft.ownerUserId);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
-  const requestVersion = useRef(0);
+  const draftRef = useRef(draft);
   const activeUserIdRef = useRef(user?.id ?? null);
   const requestAbort = useRef<AbortController | null>(null);
   const activeUserId = user?.id ?? null;
   const ownerChanged = boundOwnerId !== null && activeUserId !== null && boundOwnerId !== activeUserId;
   const { refresh } = useAuth();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: ({ sessionDraft, signal }: { ownerId: string; sessionDraft: WorkoutSessionDraft; signal: AbortSignal }) =>
+      createWorkoutSession(sessionDraft, signal),
+    onSuccess: (saved, variables) => {
+      if (
+        variables.signal.aborted ||
+        draftRef.current.clientId !== variables.sessionDraft.clientId ||
+        activeUserIdRef.current !== variables.ownerId ||
+        !hasCurrentSessionOwner(variables.ownerId)
+      ) return;
+      setSavedId(saved.id);
+      setSavedForUserId(variables.ownerId);
+      void queryClient.invalidateQueries({ queryKey: privateQueryKey(variables.ownerId, "sessions") });
+    },
+  });
+  const pending = mutation.isPending;
+  draftRef.current = draft;
   activeUserIdRef.current = activeUserId;
 
   useEffect(() => {
-    requestVersion.current++;
     requestAbort.current?.abort();
     requestAbort.current = null;
-    setPending(false);
     setError("");
     setSavedId("");
     setSavedForUserId("");
     setBoundOwnerId(draft.ownerUserId);
+    mutation.reset();
   }, [draft.clientId]);
 
   useEffect(() => {
-    requestVersion.current++;
     requestAbort.current?.abort();
     requestAbort.current = null;
-    setPending(false);
     setError("");
+    mutation.reset();
   }, [activeUserId]);
 
   useEffect(() => () => requestAbort.current?.abort(), []);
@@ -52,31 +70,23 @@ export function SessionSaveControl({
     if (!user || ownerChanged || pending || savedId) return;
     const userAtRequest = user.id;
     if (boundOwnerId === null) setBoundOwnerId(userAtRequest);
-    const version = ++requestVersion.current;
+    mutation.reset();
     const controller = new AbortController();
     requestAbort.current = controller;
-    setPending(true);
     setError("");
     try {
-      const saved = await createWorkoutSession(draft, controller.signal);
-      if (version !== requestVersion.current) return;
-      if (userAtRequest !== activeUserIdRef.current) return;
-      setSavedId(saved.id);
-      setSavedForUserId(userAtRequest);
+      await mutation.mutateAsync({ ownerId: userAtRequest, sessionDraft: draft, signal: controller.signal });
     } catch (failure) {
-      if (version !== requestVersion.current) return;
       if (controller.signal.aborted) return;
-      if (failure instanceof WorkoutSessionError && failure.status === 401) {
-        setError("Your sign-in expired. Sign in again, then retry this save.");
+      if (failure instanceof ApiError && failure.status === 401) {
+        setError(failure.message);
         void refresh();
       } else {
         setError(failure instanceof Error ? failure.message : "Session could not be saved. Please try again.");
       }
     } finally {
-      if (version === requestVersion.current) {
-        setPending(false);
-        requestAbort.current = null;
-      }
+      if (requestAbort.current === controller) requestAbort.current = null;
+      mutation.reset();
     }
   };
 

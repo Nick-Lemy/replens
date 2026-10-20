@@ -2,6 +2,7 @@ packages:
   - web/frontend
   - web/backend
 allowBuilds:
+  '@scarf/scarf': false
   '@prisma/engines': true
   prisma: true
 # Exact Better Auth release verified against official 1.7.11 docs; keep integrity-locked versions.
@@ -14,3 +15,5 @@ minimumReleaseAgeExclude:
   - '@better-auth/prisma-adapter@1.7.11'
   - '@better-auth/telemetry@1.7.11'
   - better-auth@1.7.11
+  - '@tanstack/query-core@5.104.5'
+  - '@tanstack/react-query@5.104.5'
