@@ -152,3 +152,16 @@ Remaining limitations: production Netlify/API proxy and cookie domains, physical
 - Corrected frontend PR #25 passed application CI/GitGuardian and merged into `dev` at `6bc91a0`. Lead independently reviewed the final lifecycle fix; all eight existing browser regressions passed, along with workspace checks/build/default tests. Frozen installation on the integrated root succeeds. `SETUP.md` is the consolidated local/hosting/Resend guide and explains each missing RIR stage. Final scoped `dev` → `main` PR is the human approval gate; no automatic main merge or next feature.
 
 - Human review: [PR #26](https://github.com/Nick-Lemy/replens/pull/26) is open from `dev` to `main`. Working tree is clean; implementation/checks are complete. Await Nick's approval; do not merge `main` or start the next feature. Actual deployment and ML remain deferred.
+
+- Nick approved and merged PR #26; local/origin dev synchronized with main at `c08c9d3` before the appearance feature.
+
+## Feature 9 — Light and dark appearance
+
+- User scope: mobile-friendly light/dark themes with a device-local preference; preserve current design, API/auth behavior and camera processing. Reused Backend Engineer confirmed no backend changes or PR are needed. Reused Frontend Engineer implements `ft/appearance-frontend` after that read-only review.
+- Acceptance: accessible toggle, readable surfaces/text/forms/dialogs in both themes, persistent validated preference with system default, no initial theme flash, correct browser theme metadata, camera overlays remain readable and public-shell cache boundaries remain intact. Use semantic Tailwind tokens and shared helpers; no dependencies, fake data or new automated tests.
+- Verification: existing checks/build/tests plus independent phone-size visual/persistence/storage-failure checks. Frontend PR to dev, Lead review/merge, final PR to main and stop for Nick. Root staged `.gitignore` is unrelated user work and must remain untouched.
+- Netlify badge: no app source injects it. Official project setting is Project configuration → General → Powered by Netlify badge → Off, without redeploy. Native-browser accessibility and screenshot views disagree, so no dashboard mutation was attempted; user was given the supported setting. Do not add CSS hacks or claim the badge was removed.
+
+- Frontend PR #27 (`ft/appearance-frontend`, head `6b52b87`) is open to dev. The Frontend Engineer hit a usage limit after implementation; Lead reported the limitation, preserved all work, finished contrast corrections and completed submission. Local workspace hooks/checks/build/default tests and independent mobile theme/persistence/blocked-storage/camera-continuity smoke passed. No backend PR was necessary. GitGuardian passed; application CI is pending before dev merge.
+
+- PR #27 passed application CI (including existing database/browser regressions) and GitGuardian, then merged into dev at `7c2b009` after Lead review. Both themes and preserved camera state were independently verified. Final dev-to-main PR is the next human approval gate; no main merge. Netlify badge remains a dashboard action, not an application-code change.
