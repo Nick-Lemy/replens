@@ -141,7 +141,7 @@ Create a private local backup directory and stream a custom-format PostgreSQL du
 
 ```sh
 umask 077
-BACKUP_DIR=/var/backups/replens
+BACKUP_DIR="$HOME/replens-backups"
 mkdir -p "$BACKUP_DIR"
 docker compose --env-file .env -f compose.yml exec -T db pg_dump -U replens -d replens -Fc > "$BACKUP_DIR/replens-$(date -u +%Y%m%dT%H%M%SZ).dump"
 ```
@@ -151,7 +151,7 @@ For restore, stop the API, create a separate empty target database, and restore 
 ```sh
 docker compose --env-file .env -f compose.yml stop api
 docker compose --env-file .env -f compose.yml exec db createdb -U replens replens_restore
-docker compose --env-file .env -f compose.yml exec -T db pg_restore -U replens -d replens_restore --no-owner < /var/backups/replens/REPLENS_BACKUP.dump
+docker compose --env-file .env -f compose.yml exec -T db pg_restore -U replens -d replens_restore --no-owner < "$BACKUP_DIR/REPLENS_BACKUP.dump"
 # Update DATABASE_URL to end in /replens_restore, then:
 docker compose --env-file .env -f compose.yml --profile ops run --rm migrate
 docker compose --env-file .env -f compose.yml up -d api
