@@ -30,3 +30,4 @@ web/backend/src/generated/
 # Browser test artifacts
 **/test-results/
 **/playwright-report/
+web/backend/deploy/backups/
