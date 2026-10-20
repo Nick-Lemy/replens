@@ -1,21 +1,20 @@
 import { useEffect, useState } from "react";
-import { exercisePhotos } from "../content/exercisePhotos";
+import type { ExercisePhotoSet } from "../features/exercises/types";
 
 export function ExercisePhoto({
-  exerciseId,
+  photos,
   imageIndex = 1,
   alt,
   variant = "fill",
   priority = false,
 }: {
-  exerciseId: string;
+  photos: ExercisePhotoSet | null;
   imageIndex?: number;
   alt: string;
   variant?: "fill" | "thumbnail" | "gallery";
   priority?: boolean;
 }) {
-  const photos = exercisePhotos[exerciseId];
-  const src = photos?.images[Math.min(imageIndex, photos.images.length - 1)];
+  const src = photos?.images[Math.min(imageIndex, (photos?.images.length ?? 1) - 1)];
   const [failed, setFailed] = useState(false);
   const frameClasses = {
     fill: "h-full w-full self-stretch",
@@ -55,12 +54,19 @@ export function ExercisePhoto({
   );
 }
 
-export function PhotoCredit({ exerciseId }: { exerciseId: string }) {
-  const photos = exercisePhotos[exerciseId];
+export function PhotoCredit({
+  photos,
+  prefix = "Photo",
+  note = "Resized for display; thumbnails cropped to fit.",
+}: {
+  photos: ExercisePhotoSet | null;
+  prefix?: string;
+  note?: string;
+}) {
   if (!photos) return null;
   return (
     <p className="text-[10px] leading-[1.8] text-muted mt-3.5">
-      Photo:{" "}
+      {prefix}:{" "}
       <a className="underline underline-offset-3" href={photos.creditUrl} target="_blank" rel="noopener noreferrer">
         {photos.credit}
       </a>{" "}
@@ -72,25 +78,24 @@ export function PhotoCredit({ exerciseId }: { exerciseId: string }) {
       <a className="underline underline-offset-3" href={photos.sourceUrl} target="_blank" rel="noopener noreferrer">
         Source
       </a>
-      <span className="block mt-[3px]">Resized for display; thumbnails cropped to fit.</span>
+      <span className="block mt-[3px]">{note}</span>
     </p>
   );
 }
 
 export function ExerciseGallery({
-  exerciseId,
+  photos,
   name,
 }: {
-  exerciseId: string;
+  photos: ExercisePhotoSet;
   name: string;
 }) {
   const [selected, setSelected] = useState(0);
-  const photos = exercisePhotos[exerciseId];
   return (
     <figure className="min-w-0">
       <ExercisePhoto
         variant="gallery"
-        exerciseId={exerciseId}
+        photos={photos}
         imageIndex={selected}
         alt={`${name} demonstration, photo ${selected + 1}`}
       />
@@ -115,7 +120,7 @@ export function ExerciseGallery({
         {photos?.variation && (
           <p className="text-xs leading-[1.7] text-[#c4ccba] mt-[15px]">{photos.variation}</p>
         )}
-        <PhotoCredit exerciseId={exerciseId} />
+        <PhotoCredit photos={photos} />
       </figcaption>
     </figure>
   );

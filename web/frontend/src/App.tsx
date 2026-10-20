@@ -159,8 +159,7 @@ export function App() {
             className="py-3 px-5.5 text-xs bg-[#f2b85b17] text-[#d8c59f]"
             role="status"
           >
-            You’re offline. Previously loaded guides and camera preview remain
-            available.
+            You’re offline. Reconnect to load exercise guides, saved history or tracking files.
           </div>
         )}
         {status === "unavailable" && (

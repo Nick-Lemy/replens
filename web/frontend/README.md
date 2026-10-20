@@ -11,12 +11,12 @@ pnpm install
 pnpm dev:frontend
 ```
 
-Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The interface itself does not require the health API to render. Vite proxies `/api` requests to port 3000; production forwarding awaits the real VPS domain.
+Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The app shell and live session remain navigable if the exercise-guide API is unavailable; Home and Guide show a retry state. Vite proxies `/api` requests to port 3000; production forwarding awaits the real VPS domain.
 
 ## Implemented interface
 
 - App-style Home with a single featured curl, a session action, a guide row and recent-session empty state. No landing-page tutorial or decorative badges.
-- Searchable library of 14 exercise guides with body-area filters, equipment/muscle information, movement instructions, form tips and ACE reference links. Detail pages use `#guide/exercise-id` and preserve library filters when going back. Only the simultaneous curl guide links to camera preview.
+- Searchable API-backed library of 14 exercise guides with body-area filters, equipment/muscle information, movement instructions, form tips and ACE reference links. Detail pages use `#guide/exercise-id` and preserve library filters when going back. Only the simultaneous curl guide links to camera preview.
 - Live-session page with actual video-only camera access, permission error handling, camera switching, framing cues and a configurable preview countdown/timer.
 - Camera tracks stop on navigation, tab backgrounding and component cleanup, including late permission responses. No MediaRecorder or video upload is used.
 - History shows only saved session summaries returned for the signed-in account; previews are not presented as completed exercise sessions.
@@ -37,7 +37,7 @@ pnpm --filter @replens/frontend preview
 
 Test installation/offline behavior in this production preview or on HTTPS Netlify hosting. Visit online first so the shell is cached, then reload once the worker is active and test offline. A new worker waits for existing app tabs to close before activation. Installing the PWA does not install a trained predictor.
 
-Only static shell assets are cached. Auth/API requests, model files, camera footage and private data are excluded. Camera preferences alone use localStorage. The first load requires a connection; offline account/history access is not implemented. Browser-specific camera, installation and offline behavior still needs actual device testing.
+Only static shell assets are cached. Auth/API requests, model files, camera footage and private data are excluded. Camera preferences alone use localStorage. The guide catalog is held in memory for the current app visit and is not persisted for offline use; saved history and tracking files also require a connection. Browser-specific camera, installation and offline behavior still needs actual device testing.
 
 Netlify builds from the repo root with `pnpm --filter @replens/frontend build` and publishes `web/frontend/dist`; `netlify.toml` defines it. Camera access requires HTTPS or localhost. A plain HTTP LAN address on a phone is not sufficient.
 
@@ -47,6 +47,7 @@ Netlify builds from the repo root with `pnpm --filter @replens/frontend build` a
 |---|---|
 | `src/App.tsx` | App shell, navigation, preferences and account dialog |
 | `src/pages/` | Home, Guide, Live, History and Profile |
+| `src/features/exercises/` | Type-only guide contracts, API validation and lazy shared catalog state |
 | `src/hooks/useCamera.ts` | Camera acquisition, errors and cleanup |
 | `src/hooks/useInstall.ts` | Browser install prompt |
 | `src/components/` | Original icons/artwork and account form |
@@ -65,13 +66,13 @@ The mobile redesign uses compact titles, a single-column home screen, a fixed bo
 
 ## Exercise library and future support
 
-`src/content/exercises.ts` is the typed, locally bundled guide catalog. It covers arms, chest, back, shoulders, legs and core. The current research still concerns simultaneous two-arm dumbbell curls; other guides do not have tracking or validated RIR support. `cameraPreview` is true only for that curl variation. The standing curl guide links explicitly to a related seated-curl reference, rather than claiming identical posture. Other guides link to their specific ACE technique pages.
+The canonical authored catalog is served by the backend from `web/backend/src/exercises/catalog/`; the frontend loads it from `/api/exercises` and fetches deep-linked guides from `/api/exercises/:id`. The catalog covers arms, chest, back, shoulders, legs and core. The current research still concerns simultaneous two-arm dumbbell curls; other guides do not have tracking or validated RIR support. `cameraPreview` is true only for that curl variation. The standing curl guide links explicitly to a related seated-curl reference, rather than claiming identical posture. Other guides link to their specific ACE technique pages. Guide API failures have no bundled-content fallback.
 
-To add a guide, supply a stable ID, display name, body area, equipment, focus, steps, tips and reference URL. Model support needs a separate evaluated pipeline for the exercise; do not turn on camera or prediction affordances merely because an exercise has guide content. No ACE photos/videos are copied into the app. Sources and photos are hosted externally and require a connection unless already in the browser HTTP cache. The service worker does not cache them; bundled guide text remains part of the public offline shell.
+To add a guide, update the backend catalog with a stable ID, display name, body area, equipment, focus, steps, tips, reference URL and photo metadata. Model support needs a separate evaluated pipeline for the exercise; do not turn on camera or prediction affordances merely because an exercise has guide content. No ACE photos/videos are copied into the app. Sources and photos are hosted externally and require a connection unless already in the browser HTTP cache. The service worker does not cache the API or photos.
 
 ## Exercise photographs
 
-`src/content/exercisePhotos.ts` maps all 14 guide IDs to public photographs. Thirteen guides use [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), whose publisher declares the catalog/imagery public-domain under its [Unlicense](https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md). It provides an open JSON endpoint and image URLs, with no API key. Bird dogs use the Wikimedia [PTPioneer photograph](https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg), licensed CC BY 2.0; the UI links to the creator, source and license and identifies resizing/thumbnail cropping. Publisher license declarations are recorded, not presented as an independent rights audit.
+The backend's canonical photo map serves metadata for all 14 guide IDs. Thirteen guides use [Free Exercise DB](https://github.com/yuhonas/free-exercise-db), whose publisher declares the catalog/imagery public-domain under its [Unlicense](https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md). Bird dogs use the Wikimedia [PTPioneer photograph](https://commons.wikimedia.org/wiki/File:Bird_dog_exercise.jpg), licensed CC BY 2.0; the UI links to the creator, source and license and identifies resizing/thumbnail cropping. Publisher license declarations are recorded, not presented as an independent rights audit.
 
 Home uses the curl photograph, every library row has a lazy-loaded photo, and every detail page has a full-image gallery. The helper displays a text fallback on loading failure and retries after reconnection. Detail images fit within their frame; library thumbnails are cropped. Photo controls say “Photo 1/2” rather than claiming that still frames prove complete rep boundaries. Kettlebell goblet-squat, walking-lunge and rotating-grip seated-curl variations are explicitly identified below their photos. The written guide variants and research scope are unchanged.
 
