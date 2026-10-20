@@ -6,7 +6,7 @@ import type { AppConfig } from '../config/config.js';
 
 export const TRACKING_ASSET_VERSION = 'tasks-vision-1.1.1-pose-full-float16-1';
 export const TRACKING_EXERCISE_ID = 'two-arm-dumbbell-curl';
-const ASSETS = [
+export const TRACKING_ASSET_FILENAMES = [
   'vision_wasm_internal.js',
   'vision_wasm_internal.wasm',
   'vision_wasm_module_internal.js',
@@ -21,7 +21,7 @@ export class TrackingService {
   constructor(@Inject('APP_CONFIG') private readonly config: AppConfig) {}
 
   assetPath(version: string, filename: string): string {
-    if (version !== TRACKING_ASSET_VERSION || !(ASSETS as readonly string[]).includes(filename)) {
+    if (version !== TRACKING_ASSET_VERSION || !(TRACKING_ASSET_FILENAMES as readonly string[]).includes(filename)) {
       throw new NotFoundException();
     }
     const path = join(this.config.trackingAssetDir, filename);
@@ -34,7 +34,7 @@ export class TrackingService {
   }
 
   assertReady(): void {
-    if (!ASSETS.every(filename => {
+    if (!TRACKING_ASSET_FILENAMES.every(filename => {
       const path = join(this.config.trackingAssetDir, filename);
       try { return existsSync(path) && statSync(path).isFile() && statSync(path).size > 0; }
       catch { return false; }
