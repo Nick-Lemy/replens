@@ -94,6 +94,17 @@ The create body must contain exactly the five listed fields. `clientId` must be 
 
 These are client-reported counting estimates for a person's own history, not validated study measurements or medical data. The API does not persist video, pose landmarks or RIR. Deleting an account cascades to that account's summaries. Mutations require an Origin matching the configured auth or frontend origin and use `Content-Type: application/json`; request bodies remain bounded to 16 KiB. Pagination is keyset-based and capped at 50 entries per page.
 
+## Exercise guides
+
+The backend serves the existing 14 authored exercise guides and their curated photo-source credits as public read-only content. The catalog is stored in `src/exercises/catalog/`; it preserves the guide instructions, references, image URLs, credits, publisher-declared licenses and variation notes. Photo URLs are returned as metadata and are not fetched or proxied by the API. Guide availability does not imply tracking or RIR support: only `two-arm-dumbbell-curl` has `cameraPreview: true`.
+
+| Method and path | Result |
+| --- | --- |
+| `GET /api/exercises` | `{items,groups}` with all guides, including each guide's `photos` object; groups are ordered `All`, `Arms`, `Chest`, `Back`, `Shoulders`, `Legs`, `Core` |
+| `GET /api/exercises/:id` | One guide; unknown IDs return 404 |
+
+These endpoints are public and accept no query parameters; any query string returns 400. Successful responses use `Cache-Control: public, max-age=300`; errors are not cached. The frontend can migrate its catalog reads to these same-origin routes while retaining its existing search/filter behavior; the backend does not filter the fixed catalog. API responses remain outside the service-worker shell cache.
+
 ## Verification
 
 ```sh

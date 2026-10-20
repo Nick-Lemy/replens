@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { exercises } from "../src/content/exercises.ts";
-import { exercisePhotos } from "../src/content/exercisePhotos.ts";
+import { exercises } from "../../backend/src/exercises/catalog/exercises.ts";
+import { exercisePhotos } from "../../backend/src/exercises/catalog/exercise-photos.ts";
 
 test("every guide has public photo sources and licensing metadata", () => {
   assert.equal(

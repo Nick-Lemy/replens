@@ -1,8 +1,15 @@
+import { useEffect } from "react";
 import { ExercisePhoto } from "../components/ExercisePhoto";
 import { Icon } from "../components/Icon";
+import { useExerciseCatalog } from "../features/exercises/ExerciseCatalogProvider";
 import { RecentSessions } from "../features/sessions/RecentSessions";
 
 export function Home() {
+  const { catalog, loading, error, loadCatalog } = useExerciseCatalog();
+  useEffect(() => { void loadCatalog(); }, [loadCatalog]);
+  const curl = catalog?.items.find((item) => item.id === "two-arm-dumbbell-curl") ?? null;
+  const guideUnavailable = !loading && !error && catalog !== null && !curl;
+
   return (
     <>
       <div className="mb-5.5 lg:mb-8 sm:max-w-130 sm:ml-auto sm:mr-auto">
@@ -24,7 +31,7 @@ export function Home() {
           aria-label="Set up a biceps curl session"
         >
           <ExercisePhoto
-            exerciseId="two-arm-dumbbell-curl"
+            photos={curl?.photos ?? null}
             alt="A person performing a standing dumbbell biceps curl"
             priority
           />
@@ -36,10 +43,10 @@ export function Home() {
                 className="text-[21px] leading-[1.2] font-semibold tracking-[-0.045em]"
                 id="workout-title"
               >
-                Biceps curls
+                {curl?.name ?? (error || guideUnavailable ? "Curl guide unavailable" : "Loading curl guide…")}
               </h2>
               <p className="text-xs text-muted mt-2">
-                Two-arm curl · Dumbbells
+                {curl ? `${curl.group} · ${curl.equipment}` : "Exercise guide and photo"}
               </p>
             </div>
             <Icon className="size-6.25 text-[#a5af99]" name="dumbbell" />
@@ -54,6 +61,12 @@ export function Home() {
             Counts completed two-arm curls during live sessions. Reps-left
             estimates are not available.
           </p>
+          {(error || guideUnavailable) && (
+            <div className="mt-3 text-xs text-muted" role="status">
+              <p>{error || "The curl guide is not available right now."}</p>
+              <button className="min-h-11 mt-1 text-accent underline-offset-4 hover:underline" onClick={() => void loadCatalog(true)}>Retry guide</button>
+            </div>
+          )}
         </div>
       </section>
 

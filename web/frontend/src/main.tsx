@@ -1,12 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AuthProvider } from "./features/auth/AuthProvider";
+import { ExerciseCatalogProvider } from "./features/exercises/ExerciseCatalogProvider";
 import { App } from "./App";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider><App /></AuthProvider>
+    <AuthProvider>
+      <ExerciseCatalogProvider><App /></ExerciseCatalogProvider>
+    </AuthProvider>
   </StrictMode>,
 );
 
