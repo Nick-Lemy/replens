@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
+    "build:netlify": "node scripts/build-netlify.mjs",
     "check": "tsc --noEmit",
     "test": "node --test scripts/test-pwa.mjs scripts/test-photos.mjs",
     "preview": "vite preview",
