@@ -16,8 +16,8 @@ export function History({ openAccount }: { openAccount: () => void }) {
         </div>
         <h2 className="text-2xl tracking-[-0.03em]">No sessions yet.</h2>
         <p className="text-[13px] leading-[1.8] max-w-82.5 mt-3.5 mx-auto mb-6.5 text-muted">
-          Once live tracking is ready, your saved sets will appear here. Camera
-          previews are not saved as training sessions.
+          Live sessions can count curls on this device, but sets are not saved
+          to history yet. Camera previews are not saved as training sessions.
         </p>
         <a href="#live" className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] max-w-70 m-auto">
           Explore camera setup

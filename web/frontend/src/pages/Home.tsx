@@ -50,7 +50,8 @@ export function Home() {
             Start live session
           </a>
           <p className="text-[10px] leading-[1.6] text-[#b2b9a9] mt-3.25">
-            Camera preview available. Live tracking coming next.
+            Counts completed two-arm curls during live sessions. Reps-left
+            estimates are not available.
           </p>
         </div>
       </section>
