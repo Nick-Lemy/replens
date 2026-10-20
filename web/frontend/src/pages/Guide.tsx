@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { ExerciseGallery, ExercisePhoto, PhotoCredit } from "../components/ExercisePhoto";
 import { Icon } from "../components/Icon";
-import { useExerciseCatalog } from "../features/exercises/ExerciseCatalogProvider";
+import { useExerciseCatalog } from "../features/exercises/useExerciseCatalog";
 import { ExerciseApiError, fetchExerciseGuide } from "../features/exercises/api";
-import type { Exercise, ExerciseGroup } from "../features/exercises/types";
+import type { ExerciseGroup } from "../features/exercises/types";
 
 function readSelection() {
   const [, id = "", section] = window.location.hash.slice(1).split("/");
@@ -32,42 +33,21 @@ export function Guide() {
   const [selection, setSelection] = useState(readSelection);
   const [query, setQuery] = useState("");
   const [group, setGroup] = useState<ExerciseGroup>("All");
-  const [detail, setDetail] = useState<Exercise | null>(null);
-  const [detailStatus, setDetailStatus] = useState<"idle" | "loading" | "ready" | "not-found" | "unavailable">("idle");
-  const [loadedExerciseId, setLoadedExerciseId] = useState("");
-  const [detailRetry, setDetailRetry] = useState(0);
-  const { catalog, loading: catalogLoading, error: catalogError, loadCatalog } = useExerciseCatalog();
+  const { catalog, loading: catalogLoading, error: catalogError, loadCatalog } = useExerciseCatalog(!selection.id);
   useEffect(() => {
     const changed = () => setSelection(readSelection());
     window.addEventListener("hashchange", changed);
     return () => window.removeEventListener("hashchange", changed);
   }, []);
-  useEffect(() => {
-    if (selection.id) return;
-    void loadCatalog();
-  }, [selection.id, loadCatalog]);
-  useEffect(() => {
-    if (!selection.id) return;
-    const controller = new AbortController();
-    setDetail(null);
-    setDetailStatus("loading");
-    setLoadedExerciseId("");
-    void fetchExerciseGuide(selection.id, controller.signal)
-      .then((item) => {
-        if (controller.signal.aborted) return;
-        setDetail(item);
-        setLoadedExerciseId(selection.id);
-        setDetailStatus("ready");
-      })
-      .catch((failure: unknown) => {
-        if (controller.signal.aborted) return;
-        setLoadedExerciseId(selection.id);
-        setDetailStatus(failure instanceof ExerciseApiError && failure.status === 404 ? "not-found" : "unavailable");
-      });
-    return () => controller.abort();
-  }, [selection.id, detailRetry]);
-  const exercise = detail?.id === selection.id ? detail : null;
-  const visibleDetailStatus = loadedExerciseId === selection.id ? detailStatus : "loading";
+  const detailQuery = useQuery({
+    queryKey: ["public", "exercise-guide", selection.id],
+    queryFn: ({ signal }) => fetchExerciseGuide(selection.id, signal),
+    enabled: Boolean(selection.id),
+    staleTime: 5 * 60_000,
+  });
+  const exercise = detailQuery.data;
+  const detailNotFound = detailQuery.error instanceof ExerciseApiError && detailQuery.error.status === 404;
+  const visibleDetailStatus = !selection.id ? "idle" : detailQuery.isPending ? "loading" : detailQuery.isError ? detailNotFound ? "not-found" : "unavailable" : "ready";
 
   if (selection.id && visibleDetailStatus === "not-found") {
     return (
@@ -95,7 +75,7 @@ export function Guide() {
         <p className="text-muted text-sm leading-[1.75] mt-3" role="alert">
           {navigator.onLine ? "This exercise guide could not be loaded. Try again." : "You’re offline. Reconnect to load this exercise guide."}
         </p>
-        <button className="min-h-11 mt-4 text-xs text-accent underline-offset-4 hover:underline" onClick={() => setDetailRetry((value) => value + 1)}>Retry</button>
+        <button className="min-h-11 mt-4 text-xs text-accent underline-offset-4 hover:underline" onClick={() => void detailQuery.refetch()}>Retry</button>
         <a href="#guide" className="block min-h-11 mt-2 text-xs text-muted underline-offset-4 hover:underline">Back to exercises</a>
       </>
     );

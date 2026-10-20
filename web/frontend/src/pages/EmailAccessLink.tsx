@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { resetPassword, verifyEmail } from "../features/auth/api";
 import { useAuth } from "../features/auth/AuthProvider";
 
@@ -10,17 +11,19 @@ interface EmailAccessLinkProps {
 
 export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkProps) {
   const { refresh } = useAuth();
-  const [pending, setPending] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const verificationMutation = useMutation({ mutationFn: verifyEmail, gcTime: 0 });
+  const resetMutation = useMutation({ mutationFn: ({ token: resetToken, password }: { token: string; password: string }) => resetPassword(resetToken, password), gcTime: 0 });
+  const pending = verificationMutation.isPending || resetMutation.isPending;
 
   const confirmVerification = async () => {
-    setPending(true);
+    verificationMutation.reset();
     setError("");
     setMessage("");
 
     try {
-      await verifyEmail(token);
+      await verificationMutation.mutateAsync(token);
       await refresh();
       setMessage(
         "Your email address is verified. Sign in if you are not already signed in.",
@@ -32,7 +35,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
           : "This verification link could not be confirmed.",
       );
     } finally {
-      setPending(false);
+      verificationMutation.reset();
     }
   };
 
@@ -50,9 +53,9 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
       return;
     }
 
-    setPending(true);
+    resetMutation.reset();
     try {
-      await resetPassword(token, newPassword);
+      await resetMutation.mutateAsync({ token, password: newPassword });
       form.reset();
       await refresh();
       setMessage(
@@ -65,7 +68,7 @@ export function EmailAccessLink({ kind, token, openAccount }: EmailAccessLinkPro
           : "This reset link could not be used.",
       );
     } finally {
-      setPending(false);
+      resetMutation.reset();
     }
   };
 

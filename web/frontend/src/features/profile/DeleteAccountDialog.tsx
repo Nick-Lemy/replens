@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { AccountError, deleteAccount } from "../auth/api";
 
 export function DeleteAccountDialog({ refresh, disabled = false }: {
@@ -9,8 +10,9 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
   const formRef = useRef<HTMLFormElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
+  const mutation = useMutation({ mutationFn: deleteAccount, gcTime: 0 });
+  const pending = mutation.isPending;
 
   useEffect(() => {
     const dialog = dialogRef.current;
@@ -30,11 +32,11 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
     if (pending || disabled) return;
     const form = event.currentTarget;
     const password = String(new FormData(form).get("password") ?? "");
-    setPending(true);
+    mutation.reset();
     setError("");
 
     try {
-      await deleteAccount(password);
+      await mutation.mutateAsync(password);
       form.reset();
       await refresh();
       setOpen(false);
@@ -46,7 +48,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
       }
       setError(failure instanceof Error ? failure.message : "Your account could not be deleted. Please try again.");
     } finally {
-      setPending(false);
+      mutation.reset();
     }
   };
 

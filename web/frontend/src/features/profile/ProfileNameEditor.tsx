@@ -1,4 +1,5 @@
 import { useState, type FormEvent } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { AccountError, updateAccountName, type AccountUser } from "../auth/api";
 
 export function ProfileNameEditor({ user, refresh, disabled = false }: {
@@ -7,19 +8,19 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
   disabled?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const mutation = useMutation({ mutationFn: updateAccountName, gcTime: 0 });
+  const pending = mutation.isPending;
+  const error = mutation.error?.message ?? "";
 
   const saveName = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (pending || disabled) return;
     const name = String(new FormData(event.currentTarget).get("name") ?? "").trim();
-    setPending(true);
-    setError("");
+    mutation.reset();
     setNotice("");
     try {
-      await updateAccountName(name);
+      await mutation.mutateAsync(name);
       await refresh();
       setEditing(false);
       setNotice("Name saved.");
@@ -28,9 +29,6 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
         await refresh();
         return;
       }
-      setError(failure instanceof Error ? failure.message : "Your name could not be updated. Please try again.");
-    } finally {
-      setPending(false);
     }
   };
 
@@ -65,7 +63,7 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
             type="button"
             disabled={pending || disabled}
             className="flex flex-1 items-center justify-center min-h-11 rounded-xl px-4 text-xs border border-[#ffffff26] disabled:opacity-60"
-            onClick={() => { setEditing(false); setError(""); }}
+            onClick={() => { setEditing(false); mutation.reset(); }}
           >
             Cancel
           </button>
@@ -80,7 +78,7 @@ export function ProfileNameEditor({ user, refresh, disabled = false }: {
         type="button"
         disabled={disabled}
         className="min-h-11 text-xs text-accent underline underline-offset-4 disabled:opacity-60"
-        onClick={() => { setNotice(""); setError(""); setEditing(true); }}
+        onClick={() => { setNotice(""); mutation.reset(); setEditing(true); }}
       >
         Edit display name
       </button>
