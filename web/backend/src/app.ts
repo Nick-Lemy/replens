@@ -1,11 +1,13 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { getRequest, setResponse } from 'better-call/node';
 import { fromNodeHeaders } from 'better-auth/node';
 import express from 'express';
 import { AppModule } from './app.module.js';
 import { AuthService } from './auth/auth.service.js';
 import type { AppConfig } from './config/config.js';
+import { addRepLensApiPaths } from './api-docs.js';
 
 export async function createApp(config: AppConfig) {
   const app = await NestFactory.create(AppModule.register(config), { bodyParser: false });
@@ -23,8 +25,33 @@ export async function createApp(config: AppConfig) {
   app.use((request: express.Request, response: express.Response, next: express.NextFunction) => {
     if (/^\/api\/(auth(?:\/|$)|me\/?$)/i.test(request.path)) response.setHeader('Cache-Control', 'no-store');
     if (/^\/api\/workout-sessions(?:\/|$)/i.test(request.path)) response.setHeader('Cache-Control', 'no-store');
+    if (/^\/api\/docs(?:\/|$)/i.test(request.path) || request.path === '/api/docs-json') response.setHeader('Cache-Control', 'no-store');
     next();
   });
+  if (config.apiDocsEnabled) {
+    const openApiConfig = new DocumentBuilder()
+      .setTitle('RepLens API')
+      .setDescription('RepLens account, exercise guide, live tracking asset, and personal session-summary API. Browser authentication uses the same-origin HttpOnly session cookie.')
+      .setVersion('1.0')
+      .build();
+    const document = addRepLensApiPaths(SwaggerModule.createDocument(app, openApiConfig), config.production);
+    SwaggerModule.setup('api/docs', app, document, {
+      jsonDocumentUrl: 'api/docs-json',
+      swaggerOptions: {
+        validatorUrl: null,
+        withCredentials: true,
+        persistAuthorization: false,
+        requestInterceptor: (request: { url: string; method?: string; credentials?: RequestCredentials; headers?: Record<string, string>; body?: string }) => {
+          request.credentials = 'include';
+          if (request.method?.toUpperCase() === 'DELETE' && /\/api\/workout-sessions\/[^/?]+(?:\?.*)?$/.test(request.url)) {
+            request.headers = { ...request.headers, 'Content-Type': 'application/json' };
+            request.body ??= '{}';
+          }
+          return request;
+        },
+      },
+    });
+  }
   app.use('/api/auth', async (request: express.Request, response: express.Response, next: express.NextFunction) => {
     const requestPath = new URL(request.originalUrl, config.authUrl).pathname;
     if (allowed.get(requestPath) !== request.method) {
