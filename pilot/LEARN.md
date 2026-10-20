@@ -237,3 +237,13 @@ This live rule-based counter differs from the Python pilot's whole-video peak de
 Implementation reference: [Google's Pose Landmarker web guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js).
 
 The pinned SDK also attempts delayed usage-metric requests. RepLens installs a worker-only download policy before importing it: only the local config and versioned public assets are allowed. Production worker responses also restrict connections to the same origin. A 66-second check plus task shutdown verified the worker restriction without relying on that production header. Font and exercise-photo requests elsewhere in the app are separate from camera processing.
+
+## Personal session history
+
+A **summary** stores the observed rep count, start/end times and whether the set was interrupted. It does not contain camera footage, body landmarks or RIR. Saving app history does not turn the count into a verified research label.
+
+**Persistence** means keeping that summary in PostgreSQL so it remains available after a page reload. The signed-in account owns it; the API checks ownership whenever someone views or deletes a summary. Browser memory can hold an unsaved draft temporarily, but it disappears when the page is left or reloaded.
+
+An **idempotent save** prevents duplicate entries when a connection fails. Each draft gets one unique request ID. Sending the same draft again returns the existing summary; reusing its ID with different details is rejected. The app must show “saved” only after the server confirms success.
+
+A database **cascade** removes related records automatically. Deleting a RepLens account also deletes its saved workout summaries. These personal records remain separate from consented study videos and participant labels.

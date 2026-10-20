@@ -18,6 +18,7 @@ model User {
   updatedAt DateTime @updatedAt
   sessions Session[]
   accounts Account[]
+  workoutSessions WorkoutSession[]
   @@map("users")
 }
 
@@ -64,4 +65,22 @@ model Verification {
   updatedAt DateTime @updatedAt
   @@index([identifier])
   @@map("verifications")
+}
+
+model WorkoutSession {
+  id String @id @default(uuid())
+  userId String
+  clientId String
+  exerciseId String
+  counterVersion String
+  startedAt DateTime
+  endedAt DateTime
+  durationSeconds Int
+  completedReps Int
+  interrupted Boolean
+  createdAt DateTime @default(now())
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, clientId])
+  @@index([userId, startedAt, id])
+  @@map("workout_sessions")
 }
