@@ -1,13 +1,13 @@
 # RepLens web application
 
-This folder contains the mobile-first web application: `frontend/` (React, TypeScript, Vite and Tailwind) and `backend/` (NestJS and TypeScript). Accounts use Better Auth, Prisma and PostgreSQL. The working video-processing pilot remains in `../pilot/`; live web rep counting and RIR prediction are not connected yet.
+This folder contains the mobile-first web application: `frontend/` (React, TypeScript, Vite and Tailwind) and `backend/` (NestJS and TypeScript). Accounts use Better Auth, Prisma and PostgreSQL. The video-processing pilot remains in `../pilot/`. The web app has live browser-local curl counting, saved personal summaries and API-backed exercise guides. A trained RIR predictor is not connected yet.
 
-The planned parts are:
+The application includes:
 
-- A live camera session as the main experience, with video upload as a secondary testing/research path.
+- A live camera session as the main experience. Video upload remains in the separate Python pilot.
 - Live arm tracking and a rep counter.
 - Movement measurements and, once supported by evaluation, updated reps-left estimates after each completed repetition.
-- A NestJS backend for accounts, guides and history, with proposed live pose tracking and evaluated RIR inference in the phone browser.
+- A NestJS backend for accounts, public educational guides and private personal history. Live pose tracking runs in the phone browser; evaluated RIR inference is planned.
 - Clear messages when tracking is poor or a prediction cannot be trusted.
 
 The web app will use the same feature calculations used during model training. For example, if the model learns from elbow-angle speed, the app must calculate that speed in the same way.
@@ -16,7 +16,7 @@ The web app will use the same feature calculations used during model training. F
 
 The selected deployment serves the React frontend from Netlify and versioned model files from the Kigali VPS. Docker Compose will run Caddy, NestJS and PostgreSQL on that VPS; Caddy will provide HTTPS and API/model-file routing. The current Compose file starts a local development database only. See `backend/README.md` for authentication origins/cookies and local setup. Older architecture drawings may predate the model-hosting choice. Live browser inference remains subject to model export and actual phone performance checks.
 
-Before building the full app, we need a reliable video pipeline and an evaluation showing what the RIR model can and cannot do.
+RIR integration still requires suitable study data, compatible feature calculations and an evaluation on unseen participants.
 
 ## Mobile-first design reference
 
@@ -43,7 +43,7 @@ Do not label the main live feature or its controls "Record" or "Recording": the 
 
 ## Starter commands
 
-From the repository root: `pnpm install`, follow `backend/README.md` to configure PostgreSQL and apply migrations, then `pnpm dev`. The frontend runs on port 5173 and proxies `/api` to the backend on port 3000. `pnpm check` checks types and `pnpm build` compiles both workspaces. There is no frontend server rendering. Home, Guide, Live, History and Profile retain the existing design; accounts connect to the real backend. History remains an honest empty state until saving is implemented. See `frontend/README.md` for behaviour and verification limits.
+From the repository root: `pnpm install`, follow `backend/README.md` to configure PostgreSQL and apply migrations, then `pnpm dev`. The frontend runs on port 5173 and proxies `/api` to the backend on port 3000. `pnpm check` checks types and `pnpm build` compiles both workspaces. There is no frontend server rendering. Home, Guide, Live, History and Profile retain the existing design; accounts connect to the real backend. History saves and retrieves actual live summaries for the signed-in account. The 14 existing educational guides come from the public exercise API; their canonical content and photo credits live in `backend/src/exercises/catalog/`. Unavailable guide data shows an error/retry state, while live-session navigation stays available. See `frontend/README.md` for behaviour and verification limits.
 
 ## Verification
 
