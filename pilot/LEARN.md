@@ -217,3 +217,23 @@ The final proposal text now specifies **Ridge regression** for the main comparis
 - The proposed first experiment uses features available by the end of the current rep. It does not use future reps or final set length as inputs.
 
 This clarifies the proposed training stage; it does not change the current pilot's measurements or establish that the combined model is better. See `docs/PROPOSAL_SUBMISSION_TEXT.md` for the proposed grids and source documentation.
+
+
+## Browser-local live curl counting
+
+This web feature uses two different pieces:
+
+- A **pretrained pose model** finds shoulders, elbows and wrists. Google trained this model already; we are not training it with our volunteer data. Finding joints does not predict fatigue.
+- A **state machine** is a small set of rules that remembers the movement stage: arms down, arms lifting, then arms back down. It adds a rep only after both arms complete the required cycle. Visibility, movement range and timing checks help reject incomplete or mismatched movements. These rules are engineering choices, not proof that every count is correct.
+
+A **Web Worker** runs pose processing on a separate browser thread so the interface can stay responsive. The browser sends temporary camera frames to that worker, not to our server. A **timestamp** says when a frame was captured; the counter uses elapsed time to avoid joining movements across tracking gaps.
+
+The backend supplies the pinned pose model and **runtime** files. A runtime is the software needed to execute a model. Here it uses **WebAssembly (WASM)**, a format browsers can run efficiently. The model and runtime files are downloaded to the phone; that does not mean camera frames are uploaded. The service worker does not cache the model/WASM requests under `/api`. The browser's ordinary HTTP cache can reuse these public versioned files; app and worker JavaScript may be cached as part of the public interface. None of those caches stores camera frames.
+
+For a front-facing curl, the forearm can point towards the camera. Its flat image angle can then jump even while the real arm moves smoothly. The live counter therefore uses MediaPipe's **estimated 3D joints** to calculate elbow bend, while image coordinates draw the overlay and check visible wrist movement. Estimated 3D is not a calibrated physical measurement.
+
+This live rule-based counter differs from the Python pilot's whole-video peak detector. Its bend geometry also differs from the pilot's image-plane angles; future RIR training must use the same feature definition as deployment rather than mixing those measurements. It needs its own footage and device checks. A missing pose or model must show an unavailable or repositioning message. The RIR model is still a separate future stage: a rep count alone cannot tell us how many more reps the lifter could do. Live counts are not study ground-truth labels, and this feature does not save video or session history.
+
+Implementation reference: [Google's Pose Landmarker web guide](https://developers.google.com/edge/mediapipe/solutions/vision/pose_landmarker/web_js).
+
+The pinned SDK also attempts delayed usage-metric requests. RepLens installs a worker-only download policy before importing it: only the local config and versioned public assets are allowed. Production worker responses also restrict connections to the same origin. A 66-second check plus task shutdown verified the worker restriction without relying on that production header. Font and exercise-photo requests elsewhere in the app are separate from camera processing.
