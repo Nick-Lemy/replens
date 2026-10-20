@@ -1,3 +1,7 @@
+import { ApiError, requestJson } from "../api/client";
+
+export { ApiError as WorkoutSessionError };
+
 export interface WorkoutSession {
   id: string;
   exerciseId: "two-arm-dumbbell-curl";
@@ -22,12 +26,6 @@ export interface WorkoutSessionDraft {
 export interface WorkoutSessionPage {
   items: WorkoutSession[];
   nextCursor: string | null;
-}
-
-export class WorkoutSessionError extends Error {
-  constructor(message: string, public status = 0) {
-    super(message);
-  }
 }
 
 function isIsoDateTime(value: unknown): value is string {
@@ -56,7 +54,7 @@ function isWorkoutSession(value: unknown): value is WorkoutSession {
 }
 
 function invalidResponse(): never {
-  throw new WorkoutSessionError("Session services returned an invalid response.");
+  throw new ApiError("Session services returned an invalid response.");
 }
 
 async function request(
@@ -64,42 +62,15 @@ async function request(
   options: { method?: "GET" | "POST" | "DELETE"; body?: object; signal?: AbortSignal } = {},
 ): Promise<unknown> {
   const method = options.method ?? "GET";
-  try {
-    const response = await fetch(`/api/workout-sessions${path}`, {
-      method,
-      credentials: "include",
-      cache: "no-store",
-      signal: options.signal,
-      headers: method === "GET" ? undefined : { "Content-Type": "application/json" },
-      body: options.body ? JSON.stringify(options.body) : undefined,
-    });
-    if (!response.ok) {
-      await response.body?.cancel();
-      const message = response.status === 401
-        ? "Sign in to access your saved sessions."
-        : response.status === 404
-          ? "This saved session is no longer available."
-          : response.status === 409
-            ? "This save conflicts with an earlier request. Retry using the same session."
-            : response.status === 429
-              ? "Too many requests. Wait a moment and try again."
-              : response.status === 400
-                ? "The session details could not be saved. Please try again."
-                : "Session history is unavailable right now. Please try again.";
-      throw new WorkoutSessionError(message, response.status);
-    }
-    if (response.status === 204) return;
-    const contentType = response.headers.get("content-type") ?? "";
-    if (!/(?:application\/json|application\/[^;]+\+json)(?:\s*;|$)/i.test(contentType)) {
-      await response.body?.cancel();
-      throw new WorkoutSessionError("Session services returned an invalid response.", response.status);
-    }
-    return await response.json();
-  } catch (error) {
-    if (error instanceof WorkoutSessionError) throw error;
-    if (options.signal?.aborted) throw error;
-    throw new WorkoutSessionError("Cannot reach session history. Check your connection and try again.");
-  }
+  return requestJson(`/api/workout-sessions${path}`, {
+    method,
+    credentials: "include",
+    cache: "no-store",
+    signal: options.signal,
+    headers: method === "GET" ? undefined : { "Content-Type": "application/json" },
+    body: options.body,
+    expect: method === "DELETE" ? "none" : "json",
+  });
 }
 
 export async function createWorkoutSession(draft: WorkoutSessionDraft, signal?: AbortSignal): Promise<WorkoutSession> {

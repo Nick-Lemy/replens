@@ -1,28 +1,20 @@
 import { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { sendVerificationEmail } from "./api";
 
 export function EmailVerification({ email }: { email: string }) {
-  const [pending, setPending] = useState(false);
   const [notice, setNotice] = useState("");
-  const [error, setError] = useState("");
+  const mutation = useMutation({ mutationFn: sendVerificationEmail, gcTime: 0 });
+  const pending = mutation.isPending;
 
   const requestVerification = async () => {
-    setPending(true);
+    mutation.reset();
     setNotice("");
-    setError("");
 
     try {
-      await sendVerificationEmail(email);
+      await mutation.mutateAsync(email);
       setNotice("Verification email requested. Check your inbox.");
-    } catch (failure) {
-      setError(
-        failure instanceof Error
-          ? failure.message
-          : "Verification email is unavailable. Please try again.",
-      );
-    } finally {
-      setPending(false);
-    }
+    } catch {}
   };
 
   return (
@@ -43,9 +35,9 @@ export function EmailVerification({ email }: { email: string }) {
           {notice}
         </p>
       )}
-      {error && (
+      {mutation.error && (
         <p role="alert" className="mt-2 text-xs text-accent">
-          {error}
+          {mutation.error.message}
         </p>
       )}
     </div>

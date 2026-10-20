@@ -1,15 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
+import { QueryClientProvider } from "@tanstack/react-query";
 import { AuthProvider } from "./features/auth/AuthProvider";
-import { ExerciseCatalogProvider } from "./features/exercises/ExerciseCatalogProvider";
+import { queryClient } from "./features/api/queryClient";
 import { App } from "./App";
 import "./styles.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <AuthProvider>
-      <ExerciseCatalogProvider><App /></ExerciseCatalogProvider>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider><App /></AuthProvider>
+    </QueryClientProvider>
   </StrictMode>,
 );
 

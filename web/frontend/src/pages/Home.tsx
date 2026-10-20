@@ -1,12 +1,10 @@
-import { useEffect } from "react";
 import { ExercisePhoto } from "../components/ExercisePhoto";
 import { Icon } from "../components/Icon";
-import { useExerciseCatalog } from "../features/exercises/ExerciseCatalogProvider";
+import { useExerciseCatalog } from "../features/exercises/useExerciseCatalog";
 import { RecentSessions } from "../features/sessions/RecentSessions";
 
 export function Home() {
   const { catalog, loading, error, loadCatalog } = useExerciseCatalog();
-  useEffect(() => { void loadCatalog(); }, [loadCatalog]);
   const curl = catalog?.items.find((item) => item.id === "two-arm-dumbbell-curl") ?? null;
   const guideUnavailable = !loading && !error && catalog !== null && !curl;
 

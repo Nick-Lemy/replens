@@ -37,7 +37,7 @@ pnpm --filter @replens/frontend preview
 
 Test installation/offline behavior in this production preview or on HTTPS Netlify hosting. Visit online first so the shell is cached, then reload once the worker is active and test offline. A new worker waits for existing app tabs to close before activation. Installing the PWA does not install a trained predictor.
 
-Only static shell assets are cached. Auth/API requests, model files, camera footage and private data are excluded. Camera preferences alone use localStorage. The guide catalog is held in memory for the current app visit and is not persisted for offline use; saved history and tracking files also require a connection. Browser-specific camera, installation and offline behavior still needs actual device testing.
+Only static shell assets are cached. Auth/API requests, model files, camera footage and private data are excluded. Camera preferences alone use localStorage. TanStack Query keeps server responses in memory only; private user-scoped queries are canceled and removed on signout or account changes. Nothing is persisted through a query plugin or the service worker. The guide catalog is held in memory for the current app visit and is not persisted for offline use; saved history and tracking files also require a connection. Browser-specific camera, installation and offline behavior still needs actual device testing.
 
 Netlify builds from the repo root with `pnpm --filter @replens/frontend build:netlify` and publishes `web/frontend/dist`; `netlify.toml` defines it. Set the Netlify build environment variable `API_UPSTREAM_ORIGIN` to the API's HTTPS origin only, such as `https://api.example.com` (no path or trailing route). The build fails before compiling if this value is absent or invalid. It writes a forced `/api/*` proxy redirect to the same API path, so the frontend continues to use relative `/api` requests and API errors cannot fall through to the SPA shell. Do not publish with a placeholder hostname. Ordinary local `pnpm build` does not need this variable and clears any previous redirect artifact.
 
@@ -49,7 +49,9 @@ The backend deployment uses `API_HOST` for the API hostname and `FRONTEND_ORIGIN
 |---|---|
 | `src/App.tsx` | App shell, navigation, preferences and account dialog |
 | `src/pages/` | Home, Guide, Live, History and Profile |
-| `src/features/exercises/` | Type-only guide contracts, API validation and lazy shared catalog state |
+| `src/features/api/` | Shared JSON transport, backend error handling and in-memory query client |
+| `src/features/exercises/` | Guide response validation and shared catalog query |
+| `src/features/sessions/` | Account-scoped history queries and save/delete mutations |
 | `src/hooks/useCamera.ts` | Camera acquisition, errors and cleanup |
 | `src/hooks/useInstall.ts` | Browser install prompt |
 | `src/components/` | Original icons/artwork and account form |
@@ -99,7 +101,13 @@ Global CSS is limited to the theme, browser defaults, keyboard focus, disabled c
 
 The account dialog calls the real NestJS/Better Auth API. `features/auth/api.ts` owns HTTP communication; `AuthProvider` owns session restoration and state. Profile shows the actual account name/email and verification state, supports display-name updates and current-password-confirmed account deletion, and provides signout. Password reset and explicit email verification use the backend email endpoints and frontend hash routes; their link tokens are held in memory and removed from the URL. Guests can still browse guides and use camera preview. Completed live sets remain in memory until the user explicitly saves them; saved summaries use an idempotent client ID and the signed-in account's cookie session. History loads real account-scoped API records with pagination, detail and confirmed deletion; Home shows the actual recent records. Account deletion also deletes that account's saved summaries. No videos, landmarks, RIR estimates or mock summaries are stored.
 
-Requests use same-origin `/api`, credentials included, and `cache: no-store`. Session cookies are HttpOnly; no account tokens or credentials enter browser storage. The PWA shell cache continues to bypass API requests. A failed/expired session read clears the displayed identity; failed requests show a retry state. Request generations prevent older responses overwriting newer authentication and session-history state. A guest can explicitly sign in from a completed live summary to save it; the summary remains in memory only and is discarded on navigation or reload.
+Requests use same-origin `/api`, credentials included for private calls, and `cache: no-store`. Public exercise-guide reads omit credentials. Session cookies are HttpOnly; no account tokens or credentials enter browser storage. The shared API client validates JSON responses and displays the backend's safe error message, with a generic connection message when the service cannot be reached. TanStack Query does not automatically retry requests; the UI provides explicit retry actions. Auth-session checks refetch on focus and reconnect; public guides and saved history do not refetch just because a tab regained focus. A failed/expired session read clears the displayed identity and cancels/removes that user's private query data. Query cache is memory-only. A guest can explicitly sign in from a completed live summary to save it; the summary remains in memory only and is discarded on navigation or reload.
+
+## API explorer (Swagger)
+
+With the local backend running, open Swagger UI at `http://localhost:3000/api/docs`; its OpenAPI document is at `/api/docs-json`. You can also use the same-origin Vite proxy at `http://localhost:5173/api/docs` while the frontend dev server and backend are running. Vite forwards the full `/api` path to the backend.
+
+Production Swagger is disabled by default. To expose it intentionally, set `API_DOCS_ENABLED=true` in the backend environment; when enabled through the Netlify API proxy, append `/api/docs` to the configured frontend URL to open Swagger UI. With the flag false, both docs routes return 404. The Swagger UI uses relative API paths and same-origin credentials for Try it out. Authenticate through the documented sign-in endpoint or the app on that same origin; browser cookies are used for protected calls. Do not copy or store Better Auth response tokens. No app button or authentication bypass is added for the API explorer.
 
 Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production Netlify builds require `API_UPSTREAM_ORIGIN` as described above; configure the backend's `FRONTEND_ORIGIN` to the Netlify origin for host-only Secure cookies.
 

@@ -43,7 +43,7 @@ test("real signup, cookie restoration, invalid credentials, signin and logout", 
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill("Incorrect-password-123!");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Email or password is incorrect");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Invalid email or password");
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await expect(page.getByRole("dialog")).not.toBeVisible();
@@ -99,7 +99,7 @@ test("successful signup with a failed session read shows unavailable, not invent
   await page.getByLabel("Email", { exact: true }).fill(email);
   await page.getByLabel("Password", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Create account", exact: true }).click();
-  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Cannot reach account services");
+  await expect(page.getByRole("dialog").getByRole("alert")).toContainText("Cannot reach the service");
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.getByRole("button", { name: "Close account form" }).click();
   await page.unroute("**/api/me");
