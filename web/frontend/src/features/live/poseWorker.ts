@@ -1,4 +1,4 @@
-import { FilesetResolver, PoseLandmarker, type PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
 
 interface TrackingConfig {
   runtimeVersion: string;
@@ -32,13 +32,53 @@ interface WorkerScope {
 }
 
 const scope = self as unknown as WorkerScope;
+const MODEL_ASSET_PREFIX = "/api/tracking/assets/tasks-vision-1.1.1-pose-full-float16-1/";
 let landmarker: PoseLandmarker | null = null;
 let stopped = false;
 let initializing = false;
+let fetchPolicyInstalled = false;
+
+function installFetchPolicy(): void {
+  if (fetchPolicyInstalled) return;
+  const nativeFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = (input: RequestInfo | URL, init?: RequestInit) => {
+    const requestUrl = input instanceof Request
+      ? input.url
+      : input instanceof URL
+        ? input.href
+        : String(input);
+    const method = (init?.method ?? (input instanceof Request ? input.method : "GET")).toUpperCase();
+    let url: URL;
+    try {
+      url = new URL(requestUrl, scope.location.origin);
+    } catch {
+      return Promise.reject(new TypeError("Tracking worker blocked an unsupported request."));
+    }
+    const allowedPath =
+      url.pathname === "/api/tracking/config" ||
+      url.pathname.startsWith(MODEL_ASSET_PREFIX);
+    if (
+      method !== "GET" ||
+      url.origin !== scope.location.origin ||
+      url.search !== "" ||
+      url.hash !== "" ||
+      !allowedPath
+    ) {
+      return Promise.reject(new TypeError("Tracking worker blocked an unsupported request."));
+    }
+    return nativeFetch(input, init);
+  };
+  fetchPolicyInstalled = true;
+}
 
 function assetUrl(path: string): string {
   const url = new URL(path, scope.location.origin);
-  if (url.origin !== scope.location.origin || !url.pathname.startsWith("/api/tracking/assets/")) {
+  if (
+    url.origin !== scope.location.origin ||
+    !url.pathname.startsWith(MODEL_ASSET_PREFIX) ||
+    url.search !== "" ||
+    url.hash !== ""
+  ) {
     throw new Error("Invalid tracking asset path");
   }
   return url.href;
@@ -48,6 +88,9 @@ async function initialize(): Promise<void> {
   if (landmarker || initializing || stopped) return;
   initializing = true;
   try {
+    installFetchPolicy();
+    const { FilesetResolver, PoseLandmarker: PoseLandmarkerTask } =
+      await import("@mediapipe/tasks-vision");
     const response = await fetch("/api/tracking/config", {
       credentials: "include",
       cache: "no-store",
@@ -68,7 +111,7 @@ async function initialize(): Promise<void> {
     wasmRoot.pathname = wasmRoot.pathname.replace(/\/+$/, "");
     const vision = await FilesetResolver.forVisionTasks(wasmRoot.href, true);
     if (stopped) return;
-    const next = await PoseLandmarker.createFromOptions(vision, {
+    const next = await PoseLandmarkerTask.createFromOptions(vision, {
       baseOptions: {
         modelAssetPath: assetUrl(config.modelUrl),
         delegate: "CPU",
