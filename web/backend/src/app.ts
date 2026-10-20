@@ -22,6 +22,7 @@ export async function createApp(config: AppConfig) {
   ]);
   app.use((request: express.Request, response: express.Response, next: express.NextFunction) => {
     if (/^\/api\/(auth(?:\/|$)|me\/?$)/i.test(request.path)) response.setHeader('Cache-Control', 'no-store');
+    if (/^\/api\/workout-sessions(?:\/|$)/i.test(request.path)) response.setHeader('Cache-Control', 'no-store');
     next();
   });
   app.use('/api/auth', async (request: express.Request, response: express.Response, next: express.NextFunction) => {
@@ -64,6 +65,20 @@ export async function createApp(config: AppConfig) {
     try { await setResponse(response, await auth.handler(webRequest)); } catch (error) { next(error); }
   });
   app.use(express.json({ limit: '16kb' }));
+  app.use((error: unknown, request: express.Request, response: express.Response, next: express.NextFunction) => {
+    if (/^\/api\/workout-sessions(?:\/|$)/i.test(request.path) && typeof error === 'object' && error !== null && 'type' in error) {
+      const type = error.type;
+      if (type === 'entity.too.large') {
+        response.status(413).json({ code: 'PAYLOAD_TOO_LARGE', message: 'Session requests must not exceed 16 KiB.' });
+        return;
+      }
+      if (type === 'entity.parse.failed') {
+        response.status(400).json({ code: 'INVALID_JSON', message: 'Session request JSON is invalid.' });
+        return;
+      }
+    }
+    next(error);
+  });
   app.enableShutdownHooks();
   return app;
 }

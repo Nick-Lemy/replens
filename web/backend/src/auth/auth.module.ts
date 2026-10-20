@@ -14,7 +14,7 @@ export class AuthModule {
         { provide: DatabaseService, useFactory: () => new DatabaseService(config) },
         { provide: AuthService, inject: [DatabaseService], useFactory: (database: DatabaseService) => new AuthService(database, config) },
       ],
-      exports: [AuthService],
+      exports: [AuthService, DatabaseService],
     };
   }
 }
