@@ -181,6 +181,7 @@ export function App() {
             <Live
               initialFacing={preferences.facing}
               countdownSeconds={preferences.countdown}
+              openAccount={() => openAccount()}
             />
           )}
           {route === "history" && <History openAccount={openAccount} />}

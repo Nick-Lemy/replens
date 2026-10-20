@@ -90,7 +90,7 @@ export function DeleteAccountDialog({ refresh, disabled = false }: {
           Delete your account?
         </h2>
         <p id="delete-account-description" className="text-muted text-sm leading-[1.75] mt-3">
-          This permanently deletes your RepLens account, profile and active sessions. Enter your current password to confirm.
+          This permanently deletes your RepLens account, profile, active sign-ins and saved session summaries. Enter your current password to confirm.
         </p>
         <form ref={formRef} className="grid gap-4 mt-6" onSubmit={(event) => void confirmDeletion(event)}>
           <label className="grid gap-[9px] text-xs text-[#c6cbbd]">

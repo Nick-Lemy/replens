@@ -1,8 +1,11 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useCamera, type Facing } from "../hooks/useCamera";
 import { Icon } from "../components/Icon";
 import { useLiveTracking } from "../features/live/useLiveTracking";
 import { PoseOverlay } from "../features/live/PoseOverlay";
+import { useAuth } from "../features/auth/AuthProvider";
+import { SessionSaveControl } from "../features/sessions/SessionSaveControl";
+import type { WorkoutSessionDraft } from "../features/sessions/api";
 
 function timeLabel(seconds: number) {
   return `${Math.floor(seconds / 60)
@@ -12,11 +15,14 @@ function timeLabel(seconds: number) {
 export function Live({
   initialFacing,
   countdownSeconds,
+  openAccount,
 }: {
   initialFacing: Facing;
   countdownSeconds: number;
+  openAccount: () => void;
 }) {
   const { stream, busy, error, start, stop } = useCamera();
+  const { user, status: accountStatus } = useAuth();
   const video = useRef<HTMLVideoElement>(null);
   const tracking = useLiveTracking(video, stream);
   const [facing, setFacing] = useState(initialFacing);
@@ -27,7 +33,37 @@ export function Live({
   const [finalReps, setFinalReps] = useState(0);
   const [interrupted, setInterrupted] = useState(false);
   const startedAt = useRef(0);
+  const startedByUserId = useRef<string | null>(null);
+  const [draft, setDraft] = useState<WorkoutSessionDraft | null>(null);
   const [playbackError, setPlaybackError] = useState("");
+
+  const finishSession = useCallback((wasInterrupted: boolean, stopCamera = true) => {
+    const startTime = startedAt.current;
+    if (!startTime) {
+      setRunning(false);
+      setCountdown(null);
+      if (stopCamera) stop();
+      return;
+    }
+    const endTime = Date.now();
+    const reps = tracking.endSet();
+    setFinalReps(reps);
+    setElapsed(Math.max(0, Math.floor((endTime - startTime) / 1000)));
+    setRunning(false);
+    setCountdown(null);
+    setFinished(true);
+    setInterrupted(wasInterrupted);
+    setDraft({
+      clientId: crypto.randomUUID(),
+      startedAt: new Date(startTime).toISOString(),
+      endedAt: new Date(endTime).toISOString(),
+      completedReps: reps,
+      interrupted: wasInterrupted,
+      ownerUserId: startedByUserId.current,
+    });
+    startedAt.current = 0;
+    if (stopCamera) stop();
+  }, [stop, tracking.endSet]);
 
   useEffect(() => {
     const element = video.current;
@@ -49,8 +85,9 @@ export function Live({
   useEffect(() => {
     if (stream) return;
     setCountdown(null);
-    setRunning(false);
-  }, [stream]);
+    if (running) finishSession(true, false);
+    else setRunning(false);
+  }, [stream, running, finishSession]);
 
   useEffect(() => {
     if (countdown === null || !stream) return;
@@ -60,8 +97,10 @@ export function Live({
     }
     if (countdown === 0) {
       startedAt.current = Date.now();
+      startedByUserId.current = user?.id ?? null;
       setElapsed(0);
       setFinalReps(0);
+      setDraft(null);
       tracking.beginSet();
       setRunning(true);
       setCountdown(null);
@@ -69,7 +108,7 @@ export function Live({
     }
     const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
     return () => clearTimeout(timer);
-  }, [countdown, stream, tracking.ready, tracking.beginSet]);
+  }, [countdown, stream, tracking.ready, tracking.beginSet, user?.id]);
 
   useEffect(() => {
     if (!running) return;
@@ -82,21 +121,11 @@ export function Live({
 
   useEffect(() => {
     if (!running || !tracking.error) return;
-    setFinalReps(tracking.endSet());
-    setInterrupted(true);
-    setRunning(false);
-    setCountdown(null);
-    setFinished(true);
-    stop();
-  }, [running, tracking.error, tracking.endSet, stop]);
+    finishSession(true);
+  }, [running, tracking.error, finishSession]);
 
   const end = () => {
-    setFinalReps(tracking.endSet());
-    setRunning(false);
-    setCountdown(null);
-    setFinished(true);
-    setInterrupted(false);
-    stop();
+    finishSession(false);
   };
   const trackingLabel = !stream
     ? "Not connected"
@@ -368,8 +397,19 @@ export function Live({
                 </p>
               )}
               <p className="text-muted text-sm leading-[1.75] mt-3">
-                This session is not saved. Its count stays on this page only.
+                {draft
+                  ? "This summary is held in memory until you choose to save it."
+                  : "This session could not be saved as a summary."}
               </p>
+              {draft && (
+                <SessionSaveControl
+                  key={draft.clientId}
+                  draft={draft}
+                  user={user}
+                  accountLoading={accountStatus === "loading"}
+                  openAccount={openAccount}
+                />
+              )}
               <a
                 href="#home"
                 className="inline-flex items-center gap-3.5 text-xs font-semibold text-accent mt-4"

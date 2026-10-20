@@ -1,5 +1,6 @@
 import { ExercisePhoto } from "../components/ExercisePhoto";
 import { Icon } from "../components/Icon";
+import { RecentSessions } from "../features/sessions/RecentSessions";
 
 export function Home() {
   return (
@@ -72,28 +73,7 @@ export function Home() {
         <Icon name="chevron" className="ml-auto size-5" />
       </a>
 
-      <section className="mt-6 sm:max-w-130 sm:ml-auto sm:mr-auto">
-        <div className="flex items-center justify-between mb-4.5">
-          <h2 className="text-base font-medium tracking-[-0.02em]">
-            Recent sessions
-          </h2>
-          <a
-            className="text-[11px] text-[#b5bdad] p-[10px_0_10px_12px]"
-            href="#history"
-          >
-            View all
-          </a>
-        </div>
-        <div className="flex items-center gap-3.5 p-5.25 rounded-[17px] bg-[#1d201b]">
-          <Icon className="size-5.75 text-[#98a08c]" name="history" />
-          <div>
-            <h3 className="text-xs font-medium">No sessions yet</h3>
-            <p className="text-[11px] leading-[1.6] text-muted mt-1.25">
-              Your saved sets will appear here.
-            </p>
-          </div>
-        </div>
-      </section>
+      <RecentSessions />
     </>
   );
 }
