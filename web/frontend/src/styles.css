@@ -1,17 +1,69 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #181b16;
-  --color-foreground: #f3f4ed;
-  --color-accent: #f2b85b;
-  --color-surface: #20221f;
-  --color-muted: #a2a79f;
+  --color-background: var(--theme-background);
+  --color-foreground: var(--theme-foreground);
+  --color-accent: var(--theme-accent);
+  --color-on-accent: var(--theme-on-accent);
+  --color-surface: var(--theme-surface);
+  --color-surface-raised: var(--theme-surface-raised);
+  --color-surface-soft: var(--theme-surface-soft);
+  --color-input: var(--theme-input);
+  --color-muted: var(--theme-muted);
+  --color-secondary: var(--theme-secondary);
+  --color-placeholder: var(--theme-placeholder);
+  --color-line: var(--theme-line);
+  --color-control: var(--theme-control);
+  --color-accent-soft: var(--theme-accent-soft);
+  --color-accent-line: var(--theme-accent-line);
+  --color-danger: var(--theme-danger);
+  --color-danger-text: var(--theme-danger-text);
+  --color-danger-foreground: var(--theme-danger-foreground);
   --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {
   :root {
     color-scheme: dark;
+    --theme-background: #181b16;
+    --theme-foreground: #f3f4ed;
+    --theme-accent: #f2b85b;
+    --theme-on-accent: #22281b;
+    --theme-surface: #20221f;
+    --theme-surface-raised: #1c1f1a;
+    --theme-surface-soft: #252920;
+    --theme-input: #272c22;
+    --theme-muted: #a2a79f;
+    --theme-secondary: #c6cbbd;
+    --theme-placeholder: #909b82;
+    --theme-line: #ffffff17;
+    --theme-control: #ffffff06;
+    --theme-accent-soft: #f2b85b0f;
+    --theme-accent-line: #a98546;
+    --theme-danger: #733e39;
+    --theme-danger-text: #d7a4a0;
+    --theme-danger-foreground: #ffd9d4;
+  }
+  :root[data-theme="light"] {
+    color-scheme: light;
+    --theme-background: #f5f6f2;
+    --theme-foreground: #22281f;
+    --theme-accent: #865400;
+    --theme-on-accent: #ffffff;
+    --theme-surface: #ffffff;
+    --theme-surface-raised: #eef0e9;
+    --theme-surface-soft: #e9ece3;
+    --theme-input: #ffffff;
+    --theme-muted: #5c6558;
+    --theme-secondary: #414a3d;
+    --theme-placeholder: #6c7565;
+    --theme-line: #22281f24;
+    --theme-control: #22281f08;
+    --theme-accent-soft: #86540012;
+    --theme-accent-line: #865400;
+    --theme-danger: #8c3026;
+    --theme-danger-text: #8c3026;
+    --theme-danger-foreground: #ffffff;
   }
   body {
     margin: 0;

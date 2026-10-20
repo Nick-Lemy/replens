@@ -92,7 +92,7 @@ export function SessionSaveControl({
 
   if (savedId) {
     return (
-      <p className="mt-4 text-sm text-[#c6cbbd]" role="status">
+      <p className="mt-4 text-sm text-secondary" role="status">
         {savedForUserId === activeUserId ? "Session saved to your history." : "This summary was saved to the account used at the time."}
       </p>
     );
@@ -106,7 +106,7 @@ export function SessionSaveControl({
         </p>
       ) : user ? (
         <button
-          className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03] disabled:opacity-50"
+          className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-line bg-control disabled:opacity-50"
           disabled={pending || accountLoading}
           onClick={() => void save()}
         >
@@ -114,7 +114,7 @@ export function SessionSaveControl({
         </button>
       ) : (
         <button
-          className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03] disabled:opacity-50"
+          className="flex items-center justify-center min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-line bg-control disabled:opacity-50"
           disabled={accountLoading}
           onClick={openAccount}
         >

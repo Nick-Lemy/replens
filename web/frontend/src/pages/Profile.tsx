@@ -34,8 +34,8 @@ export function Profile({
         </h1>
       </div>
       <div className="grid gap-5 sm:grid-cols-[0.9fr_1.1fr] sm:gap-7">
-        <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
-          <div className="grid place-items-center size-15.5 rounded-full bg-[#d5dac5] text-[#313b29]">
+        <section className="bg-surface border border-line rounded-[20px] p-6.25">
+          <div className="grid place-items-center size-15.5 rounded-full bg-surface-soft text-foreground">
             <Icon className="size-7" name="user" />
           </div>
           <h2 className="break-words font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-5">
@@ -50,13 +50,13 @@ export function Profile({
           {user && (
             <div key={`profile:${user.id}`} className="mt-2">
               <ProfileNameEditor user={user} refresh={refresh} disabled={pending} />
-              <div className="border-t border-[#ffffff12] mt-4 pt-3">
+              <div className="border-t border-line mt-4 pt-3">
                 <DeleteAccountDialog refresh={refresh} disabled={pending} />
               </div>
             </div>
           )}
           <button
-            className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-[#22281b] mt-6"
+            className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent mt-6"
             disabled={pending || status === "loading"}
             onClick={(event) => { if (user) void signOut(); else if (status === "unavailable") void refresh(); else openAccount(event); }}
           >
@@ -65,12 +65,12 @@ export function Profile({
           {error && <p role="alert" className="mt-4 text-sm text-accent">{error}</p>}
         </section>
         <div className="grid gap-5">
-          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
+          <section className="bg-surface border border-line rounded-[20px] p-6.25">
             <h2 className="font-semibold">Camera preferences</h2>
             <label className="flex items-center justify-between gap-3 text-xs mt-5">
               <span>Preferred camera</span>
               <select
-                className="text-[#d7e0cd] bg-[#30352b] p-2.5 rounded-lg max-w-37.5"
+                className="text-secondary bg-surface-soft p-2.5 rounded-lg max-w-37.5"
                 value={preferences.facing}
                 onChange={(event) =>
                   update({
@@ -86,7 +86,7 @@ export function Profile({
             <label className="flex items-center justify-between gap-3 text-xs mt-5">
               <span>Preview countdown</span>
               <select
-                className="text-[#d7e0cd] bg-[#30352b] p-2.5 rounded-lg max-w-37.5"
+                className="text-secondary bg-surface-soft p-2.5 rounded-lg max-w-37.5"
                 value={preferences.countdown}
                 onChange={(event) =>
                   update({
@@ -104,7 +104,7 @@ export function Profile({
               Preferences stay in this browser.
             </p>
           </section>
-          <section className="bg-surface border border-[#ffffff08] rounded-[20px] p-6.25">
+          <section className="bg-surface border border-line rounded-[20px] p-6.25">
             <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18]">
               Add to home screen
             </h2>
@@ -118,7 +118,7 @@ export function Profile({
               </p>
             ) : canInstall ? (
               <button
-                className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-[#ffffff26] bg-[#ffffff03] mt-5"
+                className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-line bg-control mt-5"
                 onClick={() => {
                   void install();
                 }}
@@ -141,8 +141,8 @@ export function Profile({
           </section>
         </div>
       </div>
-      <section className="flex items-start gap-4 p-6.25 border border-[#ffffff15] rounded-[18px] mt-6">
-        <Icon className="size-6 text-[#b6c0aa]" name="shield" />
+      <section className="flex items-start gap-4 p-6.25 border border-line rounded-[18px] mt-6">
+        <Icon className="size-6 text-secondary" name="shield" />
         <div>
           <h2 className="text-sm font-medium">Camera privacy</h2>
           <p className="text-xs leading-[1.8] text-muted mt-2.25">
