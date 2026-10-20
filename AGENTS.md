@@ -28,6 +28,12 @@
 - Profile now supports persisted display-name edits and account deletion with mandatory current-password confirmation through Better Auth. Only the signed-in account can be changed; unsupported fields are rejected. Deletion removes its user/account/session records and linked reset tokens, clears authentication and returns the UI to guest. Browser camera preferences remain local. No exercise-history or research-record deletion claims are implied.
 - Backend PR #7 and frontend PR #8 were independently reviewed and merged into `dev`; focused React-key correction PR #9 was independently reviewed in the same feature. Lead verified real database/API/browser flows using disposable accounts; new automated tests are deferred. See `SPRINT.md` for the final review gate.
 
+## Feature 4 — Live counting implementation
+
+- Nick approved and merged PR #10; `main`/`dev` synchronized at `317654a` before Feature 4. Backend asset-delivery PR #11 was independently reviewed and merged into `dev` at `7fae817`. Frontend PR #12 on `ft/live-counting-frontend` was independently reviewed, corrected and merged into `dev` at `3197b08`; the final PR must still wait for Nick's approval before merging `main`.
+- The public tracking config and fixed versioned asset routes serve pinned MediaPipe Tasks Vision 1.1.1 and Full float16 revision 1. Provision ignored files using `node web/backend/scripts/prepare-tracking-assets.mjs`; missing assets return 503. Assets/frames are excluded from the PWA shell cache.
+- The web counter runs pretrained pose inference in a browser worker. Estimated 3D joints drive elbow-bend rules; normalized image joints draw landmarks and check relative arm movement. This differs from the pilot's image-plane geometry: future RIR training/deployment must agree on feature definitions. No trained RIR predictor, session persistence or video upload is added by this slice. A full production browser run counted 9 of 10 manually identified cycles on the public clip; this is not a general accuracy claim. Worker fetch restrictions precede SDK import to block delayed vendor telemetry; Netlify worker CSP adds defense. Independent >60-second and task-close smoke passed without CSP. Physical-phone and broader footage checks remain pending.
+
 ## Earlier project history
 
 - Project name: RepLens. The GitHub repository is `Nick-Lemy/replens` and must remain private unless the user explicitly requests otherwise. The local workspace folder is still named `velocity-tremor-ml`.

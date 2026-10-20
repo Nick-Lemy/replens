@@ -27,11 +27,11 @@ Use Node.js 24 LTS. From the repository root:
 pnpm install
 ```
 
-Follow [backend local setup](web/backend/README.md#local-setup) to create the ignored environment file, choose local database credentials, start PostgreSQL and apply the committed migration. Then run `pnpm dev` from the repository root.
+Follow [backend local setup](web/backend/README.md#local-setup) to create the ignored environment file, choose local database credentials, start PostgreSQL and apply the committed migration. For live curl counting, prepare the pinned pose/runtime files with `node web/backend/scripts/prepare-tracking-assets.mjs` from the repository root. These public model files stay ignored. Then run `pnpm dev` from the repository root.
 
 Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. Run the services separately with `pnpm dev:frontend` and `pnpm dev:backend`. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
-The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and camera preview/countdown. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Saved exercise sessions, live rep counting and RIR inference are not implemented yet. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
+The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and browser-local live curl counting with arm landmarks. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Saved exercise sessions and RIR inference are not implemented yet. The live counter uses estimated 3D joints and conservative movement rules; it is not a validated accuracy benchmark. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
 
 ## Git checks and commit messages
 
