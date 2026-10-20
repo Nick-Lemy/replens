@@ -30,9 +30,11 @@ The reference describes the callable API: health, account/session and the ten ex
 
 Workout DELETE requests require JSON even though the body is empty. Swagger sends `{}` with `Content-Type: application/json`. Workout summaries are client-reported estimates; no video, landmarks, RIR, or study labels are included.
 
+Nest controllers describe their operations with Swagger decorators; feature-owned DTOs describe fields with `@ApiProperty`. Shared setup lives in `src/swagger/configure-swagger.ts`, and the auth bridge supplies only allowlisted operations from Better Auth's native schema generator. Do not duplicate route definitions in a handwritten OpenAPI file.
+
 ## Accounts contract
 
-Use `credentials: 'include'` on browser requests. Auth errors use `{code,message}`; `/api/me` unauthorized errors use Nest's `{statusCode,message,error}`. Successful signup signs the user in automatically. Signup/signin return the Better Auth user/session response; clients should ignore returned tokens and use cookies, never browser storage. Restore the UI through `/api/me`.
+Use `credentials: 'include'` on browser requests. Auth errors provide a `message` and may include `code`; `/api/me` unauthorized errors use Nest's `{statusCode,message,error}`. Successful signup signs the user in automatically. Signup/signin return Better Auth's native user/token response; clients should ignore returned tokens and use cookies, never browser storage. Restore the UI through `/api/me`.
 
 | Method and path | Body | Result |
 | --- | --- | --- |

@@ -21,6 +21,8 @@ Local model files, videos, set CSVs, and the Python environment are excluded fro
 
 ## Run the web app
 
+See [SETUP.md](SETUP.md) for the full local setup, Swagger access, deployment/email settings and the remaining live RIR requirements.
+
 Use Node.js 24 LTS. From the repository root:
 
 ```bash
