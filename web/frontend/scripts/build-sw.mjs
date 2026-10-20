@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
-import { readFile, readdir, writeFile } from "node:fs/promises";
+import { readFile, readdir, unlink, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const dist = path.join(root, "dist");
+await unlink(path.join(dist, "_redirects")).catch((error) => {
+  if (error.code !== "ENOENT") throw error;
+});
 const assets = (await readdir(path.join(dist, "assets")))
   .filter((file) => /\.(js|css|svg|png|woff2?)$/.test(file))
   .sort();

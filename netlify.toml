@@ -1,5 +1,5 @@
 [build]
-  command = "pnpm --filter @replens/frontend build"
+  command = "pnpm --filter @replens/frontend build:netlify"
   publish = "web/frontend/dist"
 
 [build.environment]
