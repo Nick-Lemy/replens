@@ -2,11 +2,16 @@ import { DynamicModule, Module } from '@nestjs/common';
 import { HealthModule } from './health/health.module.js';
 import { AuthModule } from './auth/auth.module.js';
 import { TrackingModule } from './tracking/tracking.module.js';
+import { WorkoutSessionsModule } from './workout-sessions/workout-sessions.module.js';
 import type { AppConfig } from './config/config.js';
 
 @Module({})
 export class AppModule {
   static register(config: AppConfig): DynamicModule {
-    return { module: AppModule, imports: [HealthModule, AuthModule.register(config), TrackingModule.register(config)] };
+    const authModule = AuthModule.register(config);
+    return {
+      module: AppModule,
+      imports: [HealthModule, authModule, TrackingModule.register(config), WorkoutSessionsModule.register(authModule, config)],
+    };
   }
 }
