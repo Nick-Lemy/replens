@@ -11,7 +11,7 @@ pnpm install
 pnpm dev:frontend
 ```
 
-Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The app shell and live session remain navigable if the exercise-guide API is unavailable; Home and Guide show a retry state. Vite proxies `/api` requests to port 3000; production forwarding awaits the real VPS domain.
+Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The app shell and live session remain navigable if the exercise-guide API is unavailable; Home and Guide show a retry state. Vite proxies `/api` requests to port 3000; `API_PROXY_TARGET` can override this development-only destination.
 
 ## Implemented interface
 
@@ -39,7 +39,9 @@ Test installation/offline behavior in this production preview or on HTTPS Netlif
 
 Only static shell assets are cached. Auth/API requests, model files, camera footage and private data are excluded. Camera preferences alone use localStorage. The guide catalog is held in memory for the current app visit and is not persisted for offline use; saved history and tracking files also require a connection. Browser-specific camera, installation and offline behavior still needs actual device testing.
 
-Netlify builds from the repo root with `pnpm --filter @replens/frontend build` and publishes `web/frontend/dist`; `netlify.toml` defines it. Camera access requires HTTPS or localhost. A plain HTTP LAN address on a phone is not sufficient.
+Netlify builds from the repo root with `pnpm --filter @replens/frontend build:netlify` and publishes `web/frontend/dist`; `netlify.toml` defines it. Set the Netlify build environment variable `API_UPSTREAM_ORIGIN` to the API's HTTPS origin only, such as `https://api.example.com` (no path or trailing route). The build fails before compiling if this value is absent or invalid. It writes a forced `/api/*` proxy redirect to the same API path, so the frontend continues to use relative `/api` requests and API errors cannot fall through to the SPA shell. Do not publish with a placeholder hostname. Ordinary local `pnpm build` does not need this variable and clears any previous redirect artifact.
+
+The backend deployment uses `API_HOST` for the API hostname and `FRONTEND_ORIGIN` for the public frontend URL. Configure `FRONTEND_ORIGIN` to the exact HTTPS Netlify site origin so Better Auth can issue host-only Secure cookies through the same-origin proxy. Actual production URLs remain unset until deployment domains are chosen. Camera access requires HTTPS or localhost. A plain HTTP LAN address on a phone is not sufficient.
 
 ## Files to read
 
@@ -99,7 +101,7 @@ The account dialog calls the real NestJS/Better Auth API. `features/auth/api.ts`
 
 Requests use same-origin `/api`, credentials included, and `cache: no-store`. Session cookies are HttpOnly; no account tokens or credentials enter browser storage. The PWA shell cache continues to bypass API requests. A failed/expired session read clears the displayed identity; failed requests show a retry state. Request generations prevent older responses overwriting newer authentication and session-history state. A guest can explicitly sign in from a completed live summary to save it; the summary remains in memory only and is discarded on navigation or reload.
 
-Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production must provide the same-origin API proxy or an explicitly reviewed same-site deployment; Netlify-to-VPS cookie/domain setup remains pending.
+Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production Netlify builds require `API_UPSTREAM_ORIGIN` as described above; configure the backend's `FRONTEND_ORIGIN` to the Netlify origin for host-only Secure cookies.
 
 ### Browser verification
 

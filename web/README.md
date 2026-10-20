@@ -14,7 +14,7 @@ The web app will use the same feature calculations used during model training. F
 
 **Inference** means using a trained model to make a prediction on a new input. The app will perform inference; training happens separately in `../training/` before a model is added to the app.
 
-The selected deployment serves the React frontend from Netlify and versioned model files from the Kigali VPS. Docker Compose will run Caddy, NestJS and PostgreSQL on that VPS; Caddy will provide HTTPS and API/model-file routing. The current Compose file starts a local development database only. See `backend/README.md` for authentication origins/cookies and local setup. Older architecture drawings may predate the model-hosting choice. Live browser inference remains subject to model export and actual phone performance checks.
+The selected deployment serves the React frontend from Netlify and versioned model files from the Kigali VPS. Docker Compose will run Caddy, NestJS and PostgreSQL on that VPS; Caddy will provide HTTPS and API/model-file routing. `backend/compose.dev.yml` starts a local development database; `backend/deploy/compose.yml` provides the configuration-only VPS stack with an explicit migration service. Actual domains, credentials and production rollout remain pending. See `backend/README.md` for authentication origins/cookies and local setup. Older architecture drawings may predate the model-hosting choice. Live browser inference remains subject to model export and actual phone performance checks.
 
 RIR integration still requires suitable study data, compatible feature calculations and an evaluation on unseen participants.
 
