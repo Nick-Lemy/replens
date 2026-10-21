@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   NotFoundException,
   ServiceUnavailableException,
@@ -8,8 +9,9 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import {
+  EXPERIMENTAL_RIR_BUNDLES,
   EXPERIMENTAL_RIR_FILENAME,
-  EXPERIMENTAL_RIR_VERSION,
+  type ExperimentalRirModel,
   type ExperimentalRirManifest,
   isSupportedManifest,
 } from "./experimental-rir-bundle.js";
@@ -21,8 +23,15 @@ export class ExperimentalRirService {
     "../../assets/experimental-rir",
   );
 
-  config() {
-    const { manifest } = this.loadBundle();
+  config(model?: string) {
+    const selectedModel = model ?? "speed-only";
+    if (!Object.hasOwn(EXPERIMENTAL_RIR_BUNDLES, selectedModel)) {
+      throw new BadRequestException({
+        code: "INVALID_EXPERIMENTAL_RIR_MODEL",
+        message: "The requested experimental RIR model is not supported.",
+      });
+    }
+    const { manifest } = this.loadBundle(selectedModel as ExperimentalRirModel);
     return {
       synthetic: manifest.synthetic,
       deploymentApproved: manifest.deploymentApproved,
@@ -37,32 +46,37 @@ export class ExperimentalRirService {
   }
 
   asset(version: string, filename: string): Buffer {
-    if (
-      version !== EXPERIMENTAL_RIR_VERSION ||
-      filename !== EXPERIMENTAL_RIR_FILENAME
-    ) {
+    const model = Object.entries(EXPERIMENTAL_RIR_BUNDLES).find(
+      ([, contract]) => contract.version === version,
+    )?.[0] as ExperimentalRirModel | undefined;
+    if (!model || filename !== EXPERIMENTAL_RIR_FILENAME) {
       throw new NotFoundException();
     }
-    return this.loadBundle().model;
+    return this.loadBundle(model).model;
   }
 
-  private loadBundle(): { manifest: ExperimentalRirManifest; model: Buffer } {
+  private loadBundle(
+    model: ExperimentalRirModel,
+  ): { manifest: ExperimentalRirManifest; model: Buffer } {
     try {
-      const versionDirectory = join(this.bundleRoot, EXPERIMENTAL_RIR_VERSION);
+      const contract = EXPERIMENTAL_RIR_BUNDLES[model];
+      const versionDirectory = join(this.bundleRoot, contract.version);
       const parsed: unknown = JSON.parse(
         readFileSync(join(versionDirectory, "manifest.json"), "utf8"),
       );
-      if (!isSupportedManifest(parsed)) {
+      if (!isSupportedManifest(parsed, model)) {
         throw new Error("Manifest contract does not match this bundle version");
       }
       const manifest = parsed;
 
-      const model = readFileSync(join(versionDirectory, EXPERIMENTAL_RIR_FILENAME));
-      const actualHash = createHash("sha256").update(model).digest("hex");
+      const modelBytes = readFileSync(
+        join(versionDirectory, EXPERIMENTAL_RIR_FILENAME),
+      );
+      const actualHash = createHash("sha256").update(modelBytes).digest("hex");
       if (actualHash !== manifest.sha256) {
         throw new Error("Model hash does not match the manifest");
       }
-      return { manifest, model };
+      return { manifest, model: modelBytes };
     } catch {
       throw new ServiceUnavailableException({
         code: "EXPERIMENTAL_RIR_UNAVAILABLE",

@@ -7,6 +7,7 @@ import { useAuth } from "../features/auth/AuthProvider";
 import { useLiveSession } from "../features/live/useLiveSession";
 import { ExperimentalRirPanel, LiveMetrics, SessionSummary, TrackingDiagnostics, trackingLabel } from "../features/live/LivePanels";
 import { useExperimentalRir } from "../features/live/useExperimentalRir";
+import type { ExperimentalRirModel } from "../features/live/experimentalRirProtocol";
 
 function timeLabel(seconds: number) {
   return `${Math.floor(seconds / 60)
@@ -27,7 +28,8 @@ export function Live({
   const video = useRef<HTMLVideoElement>(null);
   const tracking = useLiveTracking(video, stream);
   const [experimentalRirEnabled, setExperimentalRirEnabled] = useState(false);
-  const experimentalRir = useExperimentalRir(experimentalRirEnabled, tracking.ready && !tracking.error, tracking.trackingSessionId, tracking.completedRep);
+  const [experimentalRirModel, setExperimentalRirModel] = useState<ExperimentalRirModel>("speed-only");
+  const experimentalRir = useExperimentalRir(experimentalRirEnabled, experimentalRirModel, tracking.ready && !tracking.error, tracking.trackingSessionId, tracking.completedRep);
   const session = useLiveSession({
     stream,
     trackingReady: tracking.ready,
@@ -239,6 +241,8 @@ export function Live({
           <ExperimentalRirPanel
             enabled={experimentalRirEnabled}
             onEnabledChange={setExperimentalRirEnabled}
+            model={experimentalRirModel}
+            onModelChange={setExperimentalRirModel}
             status={experimentalRir.status}
             value={experimentalRir.value}
             error={experimentalRir.error}
