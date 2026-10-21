@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "deploymentApproved": false,
+  "version": "synthetic-rir-speed-movement-v1",
+  "filename": "model.onnx",
+  "sha256": "54c30a7a9ccb76ab7b03f5f4ab51b554a59d8f7571ff6156f2e298bd35689c2c",
+  "inputName": "features",
+  "inputDtype": "float32",
+  "inputShape": [null, 3],
+  "featureOrder": [
+    "mean_up_speed_deg_s",
+    "peak_up_speed_deg_s",
+    "movement_instability"
+  ],
+  "featureDefinitionVersion": "synthetic-pilot-angular-v1",
+  "preprocessing": "StandardScaler included in ONNX; do not scale twice",
+  "output": "raw continuous RIR estimate; not rounded or clamped",
+  "notice": "SYNTHETIC ONLY: software check, not research evidence or a deployable RIR model.",
+  "provenance": {
+    "dataSource": "synthetic",
+    "runId": "20261021T155611102710Z",
+    "sourceArtifact": "training/artifacts/synthetic/20261021T155611102710Z/models/speed_movement.onnx",
+    "sourceArtifactSha256": "54c30a7a9ccb76ab7b03f5f4ab51b554a59d8f7571ff6156f2e298bd35689c2c",
+    "sourceDatasetSha256": "9af7918cd4454365f0e2791b361fc4b06369d40981c5cae3e8d08a00c2c218d5",
+    "participants": 12,
+    "trainParticipants": 9,
+    "testParticipants": 3,
+    "trainRepRows": 204,
+    "testRepRows": 64
+  }
+}
