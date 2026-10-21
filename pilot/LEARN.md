@@ -257,3 +257,25 @@ A **summary** stores the observed rep count, start/end times and whether the set
 An **idempotent save** prevents duplicate entries when a connection fails. Each draft gets one unique request ID. Sending the same draft again returns the existing summary; reusing its ID with different details is rejected. The app must show “saved” only after the server confirms success.
 
 A database **cascade** removes related records automatically. Deleting a RepLens account also deletes its saved workout summaries. These personal records remain separate from consented study videos and participant labels.
+
+## Training folder scaffold
+
+`training/` now separates data preparation, feature calculations, model training, evaluation and ONNX export. A **scaffold** is an empty starting structure, not a working model. Experiment settings belong in `configs/`; optional notebooks belong in `notebooks/`. Local research tables in `training/data/` and generated results in `training/artifacts/` are ignored by Git. The six available videos can support an initial experiment, but participant-held-out testing still requires different people for training and testing, and exact RIR requires valid endpoint evidence.
+
+## Trying the training pipeline with synthetic data
+
+**Synthetic data** means invented examples. `training/run.py` generates invented measurements, trains two small models and exports them to ONNX. This checks that the steps connect correctly. It does not show that we can predict a real lifter's RIR. The current command cannot load study data. Invented people use `SYN` IDs so they cannot be mistaken for volunteers.
+
+The generator makes speed loosely related to invented reps left, with random differences between invented people and sets. Instability is generated independently, without building in an advantage for the second model. A model can learn the generator's rules; that is not evidence about muscle fatigue. These are synthetic feature rows, not synthetic videos, so this run does not check MediaPipe or rep counting.
+
+A **seed** is a number that makes a random experiment repeatable. The same seed and settings create the same rows and participant split. A **held-out participant** is someone whose rows were kept out of training. Both models are tested on the same held-out invented people.
+
+**StandardScaler** puts different inputs on comparable scales by using the training rows' averages and spreads. It reuses those same values for test rows. Fitting it on the test rows would leak information from the test into training. A scikit-learn **Pipeline** joins scaling and prediction so they stay together.
+
+**Ridge regression** learns a weighted formula linking measurements to a number. It discourages overly large weights. Its **alpha** setting controls that penalty; this demo fixes it at 1 rather than searching for a setting on test results. The speed-only model gets two angular-speed inputs. The second gets the same two inputs plus movement instability. Neither gets participant ID, rep number or the set's final length as a prediction input.
+
+The **median reference** always predicts the middle training RIR value. It checks whether learning measurements helps compared with always saying the same number. **MAE**, or mean absolute error, is the average distance between predicted and known answers: a prediction of 4 when the answer is 2 has an error of 2 reps. The report includes an overall average and a separate average per held-out person. Synthetic scores are debugging numbers, not accuracy claims.
+
+**ONNX** is a file format for moving a trained model between runtimes. **ONNX Runtime** executes that file. A **parity check** compares its predictions with the original Python model's predictions; small floating-point differences are normal. This run checks the CPU runtime, not the phone browser. Each **model contract** lists the required feature order, units, input shape and included scaling. Its synthetic status explicitly says it is not approved for deployment. Python's joblib file is another saved-model format; only load files you created or trust.
+
+A **dataset hash** is a fingerprint of the generated CSV. The run record saves that fingerprint, settings, software versions and participant IDs so the experiment can be traced. For real data, the input calculations still need to match the live browser: pilot image-plane angular measurements cannot simply be assumed equivalent to the app's world-landmark measurements.
