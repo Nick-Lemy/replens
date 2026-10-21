@@ -1,3 +1,5 @@
+import type { AngularSample } from "./angularSpeedFeatures";
+
 export interface PoseLandmark {
   x: number;
   y: number;
@@ -49,6 +51,12 @@ export interface CounterResult {
   angles: [number, number] | null;
   reason: string | null;
   readyToStart: boolean;
+  completedRep: CompletedRepSamples | null;
+}
+
+export interface CompletedRepSamples {
+  endTimestampMs: number;
+  samples: AngularSample[];
 }
 
 interface Sample {
@@ -57,6 +65,7 @@ interface Sample {
   height: number;
   angles: [number, number];
   arms: [ArmLandmarks, ArmLandmarks];
+  smoothedAngles?: [number, number];
 }
 
 type Phase = "waiting-bottom" | "bottom" | "curl" | "rearming";
@@ -128,6 +137,8 @@ export class TwoArmCurlCounter {
   private rearmTotals: [number, number] = [0, 0];
   private rearmSamples = 0;
   private lastRejection: string | null = null;
+  private candidateSamples: AngularSample[] = [];
+  private candidateSamplesUsable = true;
 
   reset(): void {
     this.count = 0;
@@ -184,9 +195,11 @@ export class TwoArmCurlCounter {
     this.peakTimes = [0, 0];
     this.peakArms = [null, null];
     this.startArms = null;
+    this.candidateSamples = [];
+    this.candidateSamplesUsable = true;
   }
 
-  private result(status: TrackingStatus, left: ArmLandmarks | null, right: ArmLandmarks | null): CounterResult {
+  private result(status: TrackingStatus, left: ArmLandmarks | null, right: ArmLandmarks | null, completedRep: CompletedRepSamples | null = null): CounterResult {
     return {
       count: this.count,
       status,
@@ -196,6 +209,7 @@ export class TwoArmCurlCounter {
       reason: this.lastRejection,
       readyToStart: this.phase === "bottom" && this.bottom !== null && this.smoothed !== null &&
         this.smoothed.every((angle, index) => angle <= this.bottom![index] + 12),
+      completedRep,
     };
   }
 
@@ -282,6 +296,7 @@ export class TwoArmCurlCounter {
           this.smoothed[1] + alpha * (angles[1] - this.smoothed[1]),
         ]
       : angles;
+    current.smoothedAngles = [...this.smoothed];
 
     if (!this.bottom || this.phase === "waiting-bottom") {
       return this.observeBottom(current);
@@ -364,8 +379,11 @@ export class TwoArmCurlCounter {
         this.crossingTimes[index] = sample.timestamp;
       }
     }
+    if (this.crossingTimes.some((value) => value !== null)) this.appendCandidateSample(sample);
     this.observeBothAtTop(angles, bottom);
     if (this.crossingTimes[0] === null && this.crossingTimes[1] === null) {
+      this.candidateSamples = [];
+      this.candidateSamplesUsable = true;
       return this.result("tracking", sample.arms[0], sample.arms[1]);
     }
 
@@ -395,6 +413,7 @@ export class TwoArmCurlCounter {
   private observeCurl(sample: Sample, allowCount: boolean): CounterResult {
     const angles = this.smoothed ?? sample.angles;
     const bottom = this.bottom!;
+    this.appendCandidateSample(sample);
     if (sample.timestamp - this.candidateStart > MAX_CYCLE_MS) {
       this.clearCandidate(true);
       return this.result("return-bottom", sample.arms[0], sample.arms[1]);
@@ -466,7 +485,11 @@ export class TwoArmCurlCounter {
             : !wristsRose
               ? "Raise both wrists higher through the curl."
               : "Keep elbows closer to your sides.";
-    if (allowCount && completedCurl) this.count += 1;
+    let completedRep: CompletedRepSamples | null = null;
+    if (allowCount && completedCurl) {
+      this.count += 1;
+      if (this.candidateSamplesUsable) completedRep = { endTimestampMs: sample.timestamp, samples: [...this.candidateSamples] };
+    }
     this.clearCandidate(!completedCurl);
     if (completedCurl) {
       this.phase = "rearming";
@@ -474,7 +497,21 @@ export class TwoArmCurlCounter {
       this.rearmTotals = [0, 0];
       this.rearmSamples = 0;
     }
-    return this.result(completedCurl ? "tracking" : "start-position", sample.arms[0], sample.arms[1]);
+    return this.result(completedCurl ? "tracking" : "start-position", sample.arms[0], sample.arms[1], completedRep);
+  }
+
+  private appendCandidateSample(sample: Sample): void {
+    if (!sample.smoothedAngles || !this.candidateSamplesUsable) return;
+    if (this.candidateSamples.length >= 500) {
+      this.candidateSamples = [];
+      this.candidateSamplesUsable = false;
+      return;
+    }
+    this.candidateSamples.push({
+      timestampMs: sample.timestamp,
+      leftFlexionDeg: sample.smoothedAngles[0],
+      rightFlexionDeg: sample.smoothedAngles[1],
+    });
   }
 
   private observeBothAtTop(angles: [number, number], bottom: [number, number]): void {

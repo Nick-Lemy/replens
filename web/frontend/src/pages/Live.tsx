@@ -5,7 +5,8 @@ import { useLiveTracking } from "../features/live/useLiveTracking";
 import { PoseOverlay } from "../features/live/PoseOverlay";
 import { useAuth } from "../features/auth/AuthProvider";
 import { useLiveSession } from "../features/live/useLiveSession";
-import { LiveMetrics, SessionSummary, TrackingDiagnostics, trackingLabel } from "../features/live/LivePanels";
+import { ExperimentalRirPanel, LiveMetrics, SessionSummary, TrackingDiagnostics, trackingLabel } from "../features/live/LivePanels";
+import { useExperimentalRir } from "../features/live/useExperimentalRir";
 
 function timeLabel(seconds: number) {
   return `${Math.floor(seconds / 60)
@@ -25,6 +26,8 @@ export function Live({
   const { user, status: accountStatus } = useAuth();
   const video = useRef<HTMLVideoElement>(null);
   const tracking = useLiveTracking(video, stream);
+  const [experimentalRirEnabled, setExperimentalRirEnabled] = useState(false);
+  const experimentalRir = useExperimentalRir(experimentalRirEnabled, tracking.ready && !tracking.error, tracking.trackingSessionId, tracking.completedRep);
   const session = useLiveSession({
     stream,
     trackingReady: tracking.ready,
@@ -225,9 +228,22 @@ export function Live({
               reason={tracking.reason}
             />
           )}
-          <LiveMetrics count={countLabel} tracking={trackingStatusLabel} />
+          <LiveMetrics
+            count={countLabel}
+            tracking={trackingStatusLabel}
+            demoEnabled={experimentalRirEnabled}
+            demoValue={experimentalRir.value}
+          />
         </div>
         <div className="grid gap-5 content-start">
+          <ExperimentalRirPanel
+            enabled={experimentalRirEnabled}
+            onEnabledChange={setExperimentalRirEnabled}
+            status={experimentalRir.status}
+            value={experimentalRir.value}
+            error={experimentalRir.error}
+            notice={experimentalRir.notice}
+          />
           <section className="bg-surface border border-line rounded-[20px] p-6.25">
             <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18]">
               Camera setup
@@ -247,8 +263,8 @@ export function Live({
               ))}
             </ul>
             <p className="bg-accent-soft text-secondary py-3.25 px-3.75 rounded-[9px] text-xs leading-[1.7] border-l-2 border-l-accent-line mt-5">
-              Completed two-arm curls are counted during the session. Reps-left
-              estimates are not available.
+              Completed two-arm curls are counted during the session. Validated RIR
+              estimates are not available; the optional preview uses a synthetic model.
             </p>
             {stream && (
               <div className="mt-5 grid gap-3">

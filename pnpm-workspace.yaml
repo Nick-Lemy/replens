@@ -5,6 +5,7 @@ allowBuilds:
   '@scarf/scarf': false
   '@prisma/engines': true
   prisma: true
+  protobufjs: false
 # Exact Better Auth release verified against official 1.7.11 docs; keep integrity-locked versions.
 minimumReleaseAgeExclude:
   - '@better-auth/core@1.7.11'
