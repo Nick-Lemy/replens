@@ -1,4 +1,5 @@
 import type { PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { PoseWorkerMessage, PoseWorkerRequest } from "./poseWorkerProtocol";
 
 interface TrackingConfig {
   runtimeVersion: string;
@@ -7,28 +8,10 @@ interface TrackingConfig {
   exerciseId: "two-arm-dumbbell-curl";
 }
 
-type WorkerRequest =
-  | { type: "initialize" }
-  | { type: "frame"; bitmap: ImageBitmap; timestamp: number }
-  | { type: "stop" };
-
-type WorkerResponse =
-  | { type: "ready"; runtimeVersion: string }
-  | {
-      type: "frame";
-      timestamp: number;
-      width: number;
-      height: number;
-      landmarks: PoseLandmarkerResult["landmarks"][number] | null;
-      worldLandmarks: PoseLandmarkerResult["worldLandmarks"][number] | null;
-    }
-  | { type: "error"; message: string }
-  | { type: "stopped" };
-
 interface WorkerScope {
   location: Location;
-  onmessage: ((event: MessageEvent<WorkerRequest>) => void) | null;
-  postMessage(message: WorkerResponse): void;
+  onmessage: ((event: MessageEvent<PoseWorkerRequest>) => void) | null;
+  postMessage(message: PoseWorkerMessage): void;
 }
 
 const scope = self as unknown as WorkerScope;

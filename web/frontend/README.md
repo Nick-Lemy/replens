@@ -25,7 +25,7 @@ Open http://localhost:5173. This command starts only the frontend. Run `pnpm sta
 - Account forms with native validation and real persisted signup/signin through Better Auth. Sessions restore through `/api/me`; unavailable and expired sessions are handled without fabricated identity.
 - Bottom navigation on phones, sidebar on larger screens, hash navigation with browser Back support, keyboard focus styles and a native modal dialog.
 
-Live two-arm curl counting runs in a browser worker using the versioned MediaPipe full-pose model served by the API. Video frames and landmarks are processed in the browser and are not sent to the API; live counts stay in memory until the user explicitly saves a session summary. MediaPipe 1.1.1 has no documented telemetry opt-out, so the worker allows only same-origin GETs for tracking configuration and versioned assets; production also sets `connect-src 'self'`. The reps-left field remains unavailable, with no RIR inference. Independent production smoke on the public curl clip counted 9 of 10 manually identified cycles; this single clip is a functional check, not an accuracy benchmark. Exercise photos are static guide references; they are not live footage or model outputs.
+Live two-arm curl counting runs in a browser worker using the API's pinned MediaPipe Tasks Vision 1.1.1 Full pose asset. Frames are resized to a maximum 640-pixel edge before inference. Video frames and landmarks stay in the browser; counts remain in memory until the user explicitly saves a session summary. The counter uses elapsed-time smoothing, preview calibration, bilateral top/return checks and bounded pose-loss recovery. These are counting rules, not a trained RIR model or an accuracy guarantee. The optional collapsed tracking details show runtime version, observed frame rate, estimated elbow angles and the latest rejected movement reason. New summaries carry `world-full-v2`; history still accepts `world-full-v1`. MediaPipe 1.1.1 has no documented telemetry opt-out, so the worker allows only same-origin GETs for tracking configuration and versioned assets; production also sets `connect-src 'self'`. The reps-left field remains unavailable, with no RIR inference. Exercise photos are static guide references; they are not live footage or model outputs.
 
 ## PWA
 
@@ -53,6 +53,11 @@ The Kamal deployment uses `REPLENS_API_HOST` for the API hostname and `REPLENS_F
 | `src/features/api/` | Shared JSON transport, backend error handling and in-memory query client |
 | `src/features/exercises/` | Guide response validation and shared catalog query |
 | `src/features/sessions/` | Account-scoped history queries and save/delete mutations |
+| `src/features/live/curlCounter.ts` | Pure bilateral curl-count state machine and counter diagnostics |
+| `src/features/live/LivePanels.tsx` | Live metrics, optional tracking diagnostics and saved-session summary panels |
+| `src/features/live/videoFramePump.ts` | Resized camera frame scheduling, worker back-pressure and stall detection |
+| `src/features/live/poseFrameAdapter.ts` / `poseWorkerProtocol.ts` | Typed worker messages and validated pose-frame conversion |
+| `src/features/live/useLiveSession.ts` | Countdown, session timing, interruption and summary draft lifecycle |
 | `src/hooks/useCamera.ts` | Camera acquisition, errors and cleanup |
 | `src/hooks/useInstall.ts` | Browser install prompt |
 | `src/components/` | Original icons/artwork and account form |
@@ -60,6 +65,7 @@ The Kamal deployment uses `REPLENS_API_HOST` for the API hostname and `REPLENS_F
 | `public/manifest.webmanifest` | PWA identity and icons |
 | `scripts/build-sw.mjs` | Public-shell cache generated after build |
 | `scripts/test-pwa.mjs` | Cache exclusion, offline fallback and versioning checks |
+| `scripts/test-live-counter.mjs` | Synthetic frame-rate, calibration, loss and rejection regressions |
 
 ## Verification
 

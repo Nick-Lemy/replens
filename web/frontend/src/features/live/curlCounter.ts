@@ -46,6 +46,9 @@ export interface CounterResult {
   status: TrackingStatus;
   left: ArmLandmarks | null;
   right: ArmLandmarks | null;
+  angles: [number, number] | null;
+  reason: string | null;
+  readyToStart: boolean;
 }
 
 interface Sample {
@@ -56,14 +59,16 @@ interface Sample {
   arms: [ArmLandmarks, ArmLandmarks];
 }
 
-type Phase = "waiting-bottom" | "bottom" | "curl";
+type Phase = "waiting-bottom" | "bottom" | "curl" | "rearming";
 
 const MIN_VISIBILITY = 0.6;
 const MIN_BEND_DEGREES = 45;
 const MIN_TOP_FLEXION_DEGREES = 90;
 const MAX_CYCLE_MS = 20_000;
-const MAX_SAMPLE_GAP_MS = 550;
+const MAX_SAMPLE_GAP_MS = 1_000;
 const MAX_JUMP_DEGREES = 45;
+const SMOOTHING_TIME_CONSTANT_MS = 220;
+const MAX_POSE_LOSS_GRACE_MS = 250;
 
 function pixelPoint(point: PoseLandmark, width: number, height: number): [number, number] {
   return [point.x * width, point.y * height];
@@ -105,21 +110,48 @@ export class TwoArmCurlCounter {
   private previous: Sample | null = null;
   private lastAcceptedTimestamp = 0;
   private smoothed: [number, number] | null = null;
+  private lostAt: number | null = null;
   private bottom: [number, number] | null = null;
+  private bottomArms: [ArmLandmarks, ArmLandmarks] | null = null;
   private bottomStart = 0;
   private bottomTotals: [number, number] = [0, 0];
   private bottomSamples = 0;
   private bottomPreviousAngles: [number, number] | null = null;
   private candidateStart = 0;
   private crossingTimes: [number | null, number | null] = [null, null];
+  private topCrossingTimes: [number | null, number | null] = [null, null];
+  private topWindowEnds: [number | null, number | null] = [null, null];
   private peaks: [number, number] = [-Infinity, -Infinity];
   private peakTimes: [number, number] = [0, 0];
   private peakArms: [ArmLandmarks | null, ArmLandmarks | null] = [null, null];
   private startArms: [ArmLandmarks, ArmLandmarks] | null = null;
+  private rearmStart = 0;
+  private rearmTotals: [number, number] = [0, 0];
+  private rearmSamples = 0;
+  private lastRejection: string | null = null;
 
   reset(): void {
     this.count = 0;
     this.clearTracking();
+    this.lastRejection = null;
+  }
+
+  beginSet(timestamp: number): void {
+    const retainBottom = this.bottom !== null && this.phase === "bottom" &&
+      this.lastAcceptedTimestamp > 0 && timestamp - this.lastAcceptedTimestamp <= MAX_SAMPLE_GAP_MS &&
+      this.smoothed !== null && this.smoothed.every((angle, index) => angle <= this.bottom![index] + 12);
+    this.count = 0;
+    this.clearCandidate(!retainBottom);
+    this.previous = null;
+    this.lastAcceptedTimestamp = 0;
+    this.smoothed = null;
+    this.lostAt = null;
+    this.lastRejection = null;
+    if (retainBottom) {
+      this.phase = "bottom";
+    } else {
+      this.clearTracking();
+    }
   }
 
   private clearTracking(): void {
@@ -128,6 +160,7 @@ export class TwoArmCurlCounter {
     this.lastAcceptedTimestamp = 0;
     this.smoothed = null;
     this.bottom = null;
+    this.bottomArms = null;
     this.bottomStart = 0;
     this.bottomTotals = [0, 0];
     this.bottomSamples = 0;
@@ -138,6 +171,7 @@ export class TwoArmCurlCounter {
   private clearCandidate(requireBottom = false): void {
     if (requireBottom) {
       this.bottom = null;
+      this.bottomArms = null;
       this.bottomStart = 0;
       this.bottomTotals = [0, 0];
       this.bottomSamples = 0;
@@ -146,6 +180,8 @@ export class TwoArmCurlCounter {
     this.phase = this.bottom ? "bottom" : "waiting-bottom";
     this.candidateStart = 0;
     this.crossingTimes = [null, null];
+    this.topCrossingTimes = [null, null];
+    this.topWindowEnds = [null, null];
     this.peaks = [-Infinity, -Infinity];
     this.peakTimes = [0, 0];
     this.peakArms = [null, null];
@@ -153,26 +189,60 @@ export class TwoArmCurlCounter {
   }
 
   private result(status: TrackingStatus, left: ArmLandmarks | null, right: ArmLandmarks | null): CounterResult {
-    return { count: this.count, status, left, right };
+    return {
+      count: this.count,
+      status,
+      left,
+      right,
+      angles: this.smoothed ? [...this.smoothed] : null,
+      reason: this.lastRejection,
+      readyToStart: this.phase === "bottom" && this.bottom !== null && this.smoothed !== null &&
+        this.smoothed.every((angle, index) => angle <= this.bottom![index] + 12),
+    };
+  }
+
+  private registerPoseLoss(timestamp: number): void {
+    this.lostAt ??= timestamp;
+    const lostFor = timestamp - this.lostAt;
+    if (lostFor > MAX_POSE_LOSS_GRACE_MS) {
+      this.clearCandidate(true);
+      this.lastRejection = "Pose tracking paused. Hold both arms in view and return to the start.";
+    }
+    if (lostFor > MAX_SAMPLE_GAP_MS) {
+      this.clearTracking();
+      this.lostAt = timestamp;
+      this.lastRejection = "Tracking was lost for too long. Recalibrate with both arms extended.";
+    }
   }
 
   update(frame: PoseFrame, allowCount = true): CounterResult {
     const { left, right } = frame;
     if (!visible(left) || !visible(right)) {
-      this.clearTracking();
+      this.registerPoseLoss(frame.timestamp);
       return this.result("both-arms", left, right);
     }
 
     if (!frame.worldLeft || !frame.worldRight) {
-      this.clearTracking();
+      this.registerPoseLoss(frame.timestamp);
       return this.result("both-arms", left, right);
+    }
+    if (this.lostAt !== null) {
+      const lostFor = frame.timestamp - this.lostAt;
+      if (lostFor > MAX_POSE_LOSS_GRACE_MS) {
+        this.clearCandidate(true);
+        this.lastRejection = lostFor > MAX_SAMPLE_GAP_MS
+          ? "Tracking was lost for too long. Recalibrate with both arms extended."
+          : "Pose tracking paused. Hold both arms in view and return to the start.";
+      }
+      if (lostFor > MAX_SAMPLE_GAP_MS) this.clearTracking();
+      this.lostAt = null;
     }
     const angles: [number, number] = [
       flexion(frame.worldLeft),
       flexion(frame.worldRight),
     ];
     if (!angles.every(Number.isFinite)) {
-      this.clearTracking();
+      this.registerPoseLoss(frame.timestamp);
       return this.result("both-arms", left, right);
     }
 
@@ -183,19 +253,19 @@ export class TwoArmCurlCounter {
       angles,
       arms: [left, right],
     };
-    if (
-      this.lastAcceptedTimestamp > 0 &&
-      current.timestamp - this.lastAcceptedTimestamp > MAX_SAMPLE_GAP_MS
-    ) {
+    const sampleGap = this.previous ? current.timestamp - this.previous.timestamp : 0;
+    if (sampleGap > MAX_SAMPLE_GAP_MS) {
       this.clearTracking();
+      this.lastRejection = "Tracking was interrupted. Recalibrate with both arms extended.";
     }
     if (this.previous) {
       const gap = current.timestamp - this.previous.timestamp;
       const jump = current.angles.some((angle, index) =>
         Math.abs(angle - this.previous!.angles[index]) > MAX_JUMP_DEGREES,
       );
-      if (gap <= 0 || gap > MAX_SAMPLE_GAP_MS) {
+      if (gap <= 0) {
         this.clearTracking();
+        this.lastRejection = "Camera timestamps changed. Restart tracking before continuing.";
       }
       if (gap < 150 && jump) {
         this.previous = current;
@@ -205,16 +275,20 @@ export class TwoArmCurlCounter {
 
     this.previous = current;
     this.lastAcceptedTimestamp = current.timestamp;
+    const alpha = this.smoothed && sampleGap > 0
+      ? 1 - Math.exp(-sampleGap / SMOOTHING_TIME_CONSTANT_MS)
+      : 1;
     this.smoothed = this.smoothed
       ? [
-          this.smoothed[0] * 0.55 + angles[0] * 0.45,
-          this.smoothed[1] * 0.55 + angles[1] * 0.45,
+          this.smoothed[0] + alpha * (angles[0] - this.smoothed[0]),
+          this.smoothed[1] + alpha * (angles[1] - this.smoothed[1]),
         ]
       : angles;
 
     if (!this.bottom || this.phase === "waiting-bottom") {
       return this.observeBottom(current);
     }
+    if (this.phase === "rearming") return this.observeRearm(current);
     if (this.phase === "bottom") {
       return this.observeLift(current);
     }
@@ -241,10 +315,39 @@ export class TwoArmCurlCounter {
         this.bottomTotals[0] / this.bottomSamples,
         this.bottomTotals[1] / this.bottomSamples,
       ];
+      this.bottomArms = sample.arms;
       this.phase = "bottom";
       return this.result("tracking", sample.arms[0], sample.arms[1]);
     }
     return this.result("start-position", sample.arms[0], sample.arms[1]);
+  }
+
+  private observeRearm(sample: Sample): CounterResult {
+    const angles = this.smoothed ?? sample.angles;
+    const baseline = this.bottom!;
+    if (angles[0] > baseline[0] + 15 || angles[1] > baseline[1] + 15) {
+      this.rearmStart = 0;
+      this.rearmTotals = [0, 0];
+      this.rearmSamples = 0;
+      return this.result("return-bottom", sample.arms[0], sample.arms[1]);
+    }
+    if (!this.rearmStart) this.rearmStart = sample.timestamp;
+    this.rearmTotals[0] += angles[0];
+    this.rearmTotals[1] += angles[1];
+    this.rearmSamples += 1;
+    if (sample.timestamp - this.rearmStart >= 250 && this.rearmSamples >= 2) {
+      this.bottom = [
+        this.rearmTotals[0] / this.rearmSamples,
+        this.rearmTotals[1] / this.rearmSamples,
+      ];
+      this.bottomArms = sample.arms;
+      this.rearmStart = 0;
+      this.rearmTotals = [0, 0];
+      this.rearmSamples = 0;
+      this.phase = "bottom";
+      return this.result("tracking", sample.arms[0], sample.arms[1]);
+    }
+    return this.result("return-bottom", sample.arms[0], sample.arms[1]);
   }
 
   private resetBottomObservation(): void {
@@ -262,31 +365,34 @@ export class TwoArmCurlCounter {
       if (this.crossingTimes[index] === null && angles[index] >= liftThresholds[index]) {
         this.crossingTimes[index] = sample.timestamp;
       }
+      const topThreshold = Math.max(bottom[index] + MIN_BEND_DEGREES, MIN_TOP_FLEXION_DEGREES);
+      if (angles[index] >= topThreshold) {
+        this.topCrossingTimes[index] ??= sample.timestamp;
+        this.topWindowEnds[index] = sample.timestamp;
+      }
     }
     if (this.crossingTimes[0] === null && this.crossingTimes[1] === null) {
       return this.result("tracking", sample.arms[0], sample.arms[1]);
     }
 
-    if ([0, 1].some((index) => this.crossingTimes[index] !== null && angles[index] < bottom[index] + 8)) {
-      this.clearCandidate(true);
-      return this.result("start-position", sample.arms[0], sample.arms[1]);
+    for (const index of [0, 1] as const) {
+      if (this.crossingTimes[index] !== null && angles[index] < bottom[index] + 8) {
+        const other = index === 0 ? 1 : 0;
+        if (this.crossingTimes[other] !== null) {
+          this.clearCandidate(false);
+          return this.result("start-position", sample.arms[0], sample.arms[1]);
+        }
+        this.crossingTimes[index] = null;
+        this.topCrossingTimes[index] = null;
+        this.topWindowEnds[index] = null;
+      }
     }
 
-    const firstCrossing = Math.min(...this.crossingTimes.filter((value): value is number => value !== null));
-    if (sample.timestamp - firstCrossing > 500 && (this.crossingTimes[0] === null || this.crossingTimes[1] === null)) {
-      this.clearCandidate(true);
-      return this.result("return-bottom", sample.arms[0], sample.arms[1]);
-    }
     if (angles[0] >= bottom[0] + MIN_BEND_DEGREES && angles[1] >= bottom[1] + MIN_BEND_DEGREES) {
-      const leftCrossing = this.crossingTimes[0];
-      const rightCrossing = this.crossingTimes[1];
-      if (leftCrossing === null || rightCrossing === null || Math.abs(leftCrossing - rightCrossing) > 500) {
-        this.clearCandidate(true);
-        return this.result("return-bottom", sample.arms[0], sample.arms[1]);
-      }
       this.phase = "curl";
-      this.candidateStart = Math.min(leftCrossing, rightCrossing);
-      this.startArms = sample.arms;
+      const liftTimes = this.crossingTimes.filter((value): value is number => value !== null);
+      this.candidateStart = liftTimes.length ? Math.min(...liftTimes) : sample.timestamp;
+      this.startArms = this.bottomArms ?? sample.arms;
       this.peaks = [...angles];
       this.peakTimes = [sample.timestamp, sample.timestamp];
       this.peakArms = [...sample.arms];
@@ -296,12 +402,18 @@ export class TwoArmCurlCounter {
 
   private observeCurl(sample: Sample, allowCount: boolean): CounterResult {
     const angles = this.smoothed ?? sample.angles;
+    const bottom = this.bottom!;
     if (sample.timestamp - this.candidateStart > MAX_CYCLE_MS) {
       this.clearCandidate(true);
       return this.result("return-bottom", sample.arms[0], sample.arms[1]);
     }
 
     for (const index of [0, 1] as const) {
+      const topThreshold = Math.max(bottom[index] + MIN_BEND_DEGREES, MIN_TOP_FLEXION_DEGREES);
+      if (angles[index] >= topThreshold) {
+        this.topCrossingTimes[index] ??= sample.timestamp;
+        this.topWindowEnds[index] = sample.timestamp;
+      }
       if (angles[index] > this.peaks[index]) {
         this.peaks[index] = angles[index];
         this.peakTimes[index] = sample.timestamp;
@@ -309,14 +421,16 @@ export class TwoArmCurlCounter {
       }
     }
 
-    const bottom = this.bottom!;
     const returned = angles[0] <= bottom[0] + 15 && angles[1] <= bottom[1] + 15;
     if (!returned) return this.result("tracking", sample.arms[0], sample.arms[1]);
 
     const startArms = this.startArms!;
     const peaks = this.peakArms;
     const bothPeaks = !!peaks[0] && !!peaks[1];
-    const syncPeaks = bothPeaks && Math.abs(this.peakTimes[0] - this.peakTimes[1]) <= 500;
+    const topWindowOverlap = this.topCrossingTimes[0] !== null && this.topCrossingTimes[1] !== null &&
+      this.topWindowEnds[0] !== null && this.topWindowEnds[1] !== null &&
+      Math.max(this.topCrossingTimes[0], this.topCrossingTimes[1]) <=
+        Math.min(this.topWindowEnds[0], this.topWindowEnds[1]);
     const enoughBend = this.peaks[0] - bottom[0] >= MIN_BEND_DEGREES &&
       this.peaks[1] - bottom[1] >= MIN_BEND_DEGREES &&
       this.peaks[0] >= MIN_TOP_FLEXION_DEGREES &&
@@ -348,13 +462,34 @@ export class TwoArmCurlCounter {
       const elbowShift = distance(startUpperArm, peakUpperArm);
       return { armLength, wristRise, elbowShift };
     }) : [];
-    const plausibleCurl = bothPeaks && plausibility.every(({ armLength, wristRise, elbowShift }) =>
-      armLength > 1 && wristRise >= 0.25 * armLength && elbowShift <= 0.5 * armLength,
+    const wristsRose = bothPeaks && plausibility.every(({ armLength, wristRise }) =>
+      armLength > 1 && wristRise >= 0.25 * armLength,
     );
+    const elbowsStayed = bothPeaks && plausibility.every(({ armLength, elbowShift }) =>
+      armLength > 1 && elbowShift <= 0.5 * armLength,
+    );
+    const plausibleCurl = wristsRose && elbowsStayed;
 
-    const completedCurl = syncPeaks && enoughBend && enoughTime && plausibleCurl;
+    const completedCurl = topWindowOverlap && enoughBend && enoughTime && plausibleCurl;
+    this.lastRejection = completedCurl
+      ? null
+      : !topWindowOverlap
+        ? "Both arms need to reach the top together."
+        : !enoughBend
+          ? "Curl farther before returning to the start."
+          : !enoughTime
+            ? "The curl was too brief. Move smoothly and pause at the top."
+            : !wristsRose
+              ? "Raise both wrists higher through the curl."
+              : "Keep elbows closer to your sides.";
     if (allowCount && completedCurl) this.count += 1;
     this.clearCandidate(!completedCurl);
+    if (completedCurl) {
+      this.phase = "rearming";
+      this.rearmStart = 0;
+      this.rearmTotals = [0, 0];
+      this.rearmSamples = 0;
+    }
     return this.result(completedCurl ? "tracking" : "start-position", sample.arms[0], sample.arms[1]);
   }
 }

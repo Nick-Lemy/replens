@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useCamera, type Facing } from "../hooks/useCamera";
 import { Icon } from "../components/Icon";
 import { useLiveTracking } from "../features/live/useLiveTracking";
 import { PoseOverlay } from "../features/live/PoseOverlay";
 import { useAuth } from "../features/auth/AuthProvider";
-import { SessionSaveControl } from "../features/sessions/SessionSaveControl";
-import type { WorkoutSessionDraft } from "../features/sessions/api";
+import { useLiveSession } from "../features/live/useLiveSession";
+import { LiveMetrics, SessionSummary, TrackingDiagnostics, trackingLabel } from "../features/live/LivePanels";
 
 function timeLabel(seconds: number) {
   return `${Math.floor(seconds / 60)
@@ -25,45 +25,19 @@ export function Live({
   const { user, status: accountStatus } = useAuth();
   const video = useRef<HTMLVideoElement>(null);
   const tracking = useLiveTracking(video, stream);
+  const session = useLiveSession({
+    stream,
+    trackingReady: tracking.ready,
+    trackingError: tracking.error,
+    countdownSeconds,
+    userId: user?.id ?? null,
+    beginSet: tracking.beginSet,
+    endSet: tracking.endSet,
+    stopCamera: stop,
+  });
+  const { countdown, running, elapsed, finished, finalReps, interrupted, draft } = session;
   const [facing, setFacing] = useState(initialFacing);
-  const [countdown, setCountdown] = useState<number | null>(null);
-  const [running, setRunning] = useState(false);
-  const [elapsed, setElapsed] = useState(0);
-  const [finished, setFinished] = useState(false);
-  const [finalReps, setFinalReps] = useState(0);
-  const [interrupted, setInterrupted] = useState(false);
-  const startedAt = useRef(0);
-  const startedByUserId = useRef<string | null>(null);
-  const [draft, setDraft] = useState<WorkoutSessionDraft | null>(null);
   const [playbackError, setPlaybackError] = useState("");
-
-  const finishSession = useCallback((wasInterrupted: boolean, stopCamera = true) => {
-    const startTime = startedAt.current;
-    if (!startTime) {
-      setRunning(false);
-      setCountdown(null);
-      if (stopCamera) stop();
-      return;
-    }
-    const endTime = Date.now();
-    const reps = tracking.endSet();
-    setFinalReps(reps);
-    setElapsed(Math.max(0, Math.floor((endTime - startTime) / 1000)));
-    setRunning(false);
-    setCountdown(null);
-    setFinished(true);
-    setInterrupted(wasInterrupted);
-    setDraft({
-      clientId: crypto.randomUUID(),
-      startedAt: new Date(startTime).toISOString(),
-      endedAt: new Date(endTime).toISOString(),
-      completedReps: reps,
-      interrupted: wasInterrupted,
-      ownerUserId: startedByUserId.current,
-    });
-    startedAt.current = 0;
-    if (stopCamera) stop();
-  }, [stop, tracking.endSet]);
 
   useEffect(() => {
     const element = video.current;
@@ -82,68 +56,13 @@ export function Live({
     };
   }, [stream]);
 
-  useEffect(() => {
-    if (stream) return;
-    setCountdown(null);
-    if (running) finishSession(true, false);
-    else setRunning(false);
-  }, [stream, running, finishSession]);
-
-  useEffect(() => {
-    if (countdown === null || !stream) return;
-    if (!tracking.ready) {
-      setCountdown(null);
-      return;
-    }
-    if (countdown === 0) {
-      startedAt.current = Date.now();
-      startedByUserId.current = user?.id ?? null;
-      setElapsed(0);
-      setFinalReps(0);
-      setDraft(null);
-      tracking.beginSet();
-      setRunning(true);
-      setCountdown(null);
-      return;
-    }
-    const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, stream, tracking.ready, tracking.beginSet, user?.id]);
-
-  useEffect(() => {
-    if (!running) return;
-    const timer = setInterval(
-      () => setElapsed(Math.floor((Date.now() - startedAt.current) / 1000)),
-      250,
-    );
-    return () => clearInterval(timer);
-  }, [running]);
-
-  useEffect(() => {
-    if (!running || !tracking.error) return;
-    finishSession(true);
-  }, [running, tracking.error, finishSession]);
-
-  const end = () => {
-    finishSession(false);
-  };
-  const trackingLabel = !stream
+  const trackingStatusLabel = !stream
     ? "Not connected"
     : tracking.error
       ? "Unavailable"
       : !tracking.ready
         ? "Loading model…"
-        : tracking.status === "both-arms"
-          ? "Keep both arms visible"
-          : tracking.status === "start-position"
-            ? "Start with arms extended"
-            : tracking.status === "return-bottom"
-              ? "Return both arms to start"
-              : tracking.status === "steady"
-                ? "Hold briefly for tracking"
-                : tracking.status === "tracking"
-                  ? "Tracking both arms"
-                  : "Waiting for camera frames";
+        : trackingLabel(tracking.status, running, tracking.readyToStart);
   const countLabel = running ? tracking.reps : finished ? finalReps : "—";
   const liveError = error || playbackError || tracking.error;
   return (
@@ -227,8 +146,7 @@ export function Live({
                   className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent max-w-62.5"
                   disabled={busy}
                   onClick={() => {
-                    setFinished(false);
-                    setElapsed(0);
+                    session.startCameraPreview();
                     void start(facing);
                   }}
                 >
@@ -289,28 +207,15 @@ export function Live({
               Retry tracking
             </button>
           )}
-          <div className="grid grid-cols-[1fr_1fr_1.2fr] gap-2.5 mt-4">
-            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
-              <span className="block text-[9px] text-muted min-h-6">
-                Completed reps
-              </span>
-              <strong className="block text-[30px] font-normal mt-1">{countLabel}</strong>
-            </div>
-            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
-              <span className="block text-[9px] text-muted min-h-6">
-                Estimated reps left
-              </span>
-              <strong className="block text-[30px] font-normal mt-1">—</strong>
-            </div>
-            <div className="py-4.25 px-3 bg-surface rounded-[13px]">
-              <span className="block text-[9px] text-muted min-h-6">
-                Tracking
-              </span>
-              <strong className="block text-xs font-normal mt-1 leading-[1.6]">
-                {trackingLabel}
-              </strong>
-            </div>
-          </div>
+          {stream && tracking.ready && (
+            <TrackingDiagnostics
+              runtimeVersion={tracking.runtimeVersion}
+              fps={tracking.fps}
+              angles={tracking.angles}
+              reason={tracking.reason}
+            />
+          )}
+          <LiveMetrics count={countLabel} tracking={trackingStatusLabel} />
         </div>
         <div className="grid gap-5 content-start">
           <section className="bg-surface border border-line rounded-[20px] p-6.25">
@@ -340,7 +245,7 @@ export function Live({
                 {running ? (
                   <button
                     className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent"
-                    onClick={end}
+                    onClick={session.endSession}
                   >
                     End session
                     <Icon className="size-4.75" name="close" />
@@ -348,21 +253,21 @@ export function Live({
                 ) : countdown !== null ? (
                   <button
                     className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full border border-line bg-control"
-                    onClick={() => setCountdown(null)}
+                    onClick={session.cancelCountdown}
                   >
                     Cancel countdown
                   </button>
                 ) : (
                   <button
                     className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent disabled:opacity-50"
-                    disabled={!tracking.ready}
-                    onClick={() => {
-                      setFinished(false);
-                      setInterrupted(false);
-                      setCountdown(countdownSeconds);
-                    }}
+                    disabled={!tracking.ready || !tracking.readyToStart}
+                    onClick={session.startCountdown}
                   >
-                    {tracking.ready ? "Start live session" : "Preparing tracking…"}
+                    {!tracking.ready
+                      ? "Preparing tracking…"
+                      : tracking.readyToStart
+                        ? "Start live session"
+                        : "Hold arms extended"}
                   </button>
                 )}
                 {!running && (
@@ -377,46 +282,15 @@ export function Live({
             )}
           </section>
           {finished && (
-            <section
-              className="bg-surface border border-line rounded-[20px] p-6.25"
-              role="status"
-            >
-              <p className="text-muted text-sm leading-[1.75]">
-                Session complete
-              </p>
-              <h2 className="font-medium text-[22px] tracking-[-0.035em] leading-[1.18] mt-3">
-                {timeLabel(elapsed)}
-              </h2>
-              <p className="text-muted text-sm leading-[1.75] mt-3">
-                Completed curls: {finalReps}
-              </p>
-              {interrupted && (
-                <p className="text-muted text-sm leading-[1.75] mt-3">
-                  Tracking was interrupted. The session ended, and this count
-                  includes completed curls before interruption.
-                </p>
-              )}
-              <p className="text-muted text-sm leading-[1.75] mt-3">
-                {draft
-                  ? "This summary is held in memory until you choose to save it."
-                  : "This session could not be saved as a summary."}
-              </p>
-              {draft && (
-                <SessionSaveControl
-                  key={draft.clientId}
-                  draft={draft}
-                  user={user}
-                  accountLoading={accountStatus === "loading"}
-                  openAccount={openAccount}
-                />
-              )}
-              <a
-                href="#home"
-                className="inline-flex items-center gap-3.5 text-xs font-semibold text-accent mt-4"
-              >
-                Back to home
-              </a>
-            </section>
+            <SessionSummary
+              elapsed={elapsed}
+              finalReps={finalReps}
+              interrupted={interrupted}
+              draft={draft}
+              user={user}
+              accountLoading={accountStatus === "loading"}
+              openAccount={openAccount}
+            />
           )}
           <p className="flex items-start gap-2.5 text-[11px] text-muted leading-[1.7] mt-6.25">
             <Icon className="size-4 mt-0.5" name="shield" />

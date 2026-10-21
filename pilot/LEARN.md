@@ -238,6 +238,14 @@ Implementation reference: [Google's Pose Landmarker web guide](https://developer
 
 The pinned SDK also attempts delayed usage-metric requests. RepLens installs a worker-only download policy before importing it: only the local config and versioned public assets are allowed. Production worker responses also restrict connections to the same origin. A 66-second check plus task shutdown verified the worker restriction without relying on that production header. Font and exercise-photo requests elsewhere in the app are separate from camera processing.
 
+## Live counter reliability update
+
+The counter smooths angles using elapsed time: a 220 ms time constant gives comparable smoothing when the browser processes frames at different rates. A single briefly missing pose can be held for up to 250 ms, but it is never counted as a frame; longer loss clears the current movement, and a gap over one second requires extended-arm calibration again. This keeps a short tracking blip from erasing a rep while preventing a hidden full movement from being counted.
+
+Before a set begins, visible preview frames calibrate the extended-arm position without adding reps. Starting a set keeps that calibration only when both arms are still at the bottom; starting during a curl discards the partial movement. A rep must show both arms reaching the top together, wrist rise, limited elbow movement, and a return to the bottom. A short bottom re-arm period prevents one return from starting a second count. The optional tracking details show the runtime version, observed frame rate, estimated arm bend and a plain-language rejection reason.
+
+The updated browser counter is `world-full-v2`; older personal summaries keep their `world-full-v1` version and remain readable. These rule changes do not add an RIR predictor, video storage, or research labels. Synthetic tests check multiple frame rates and rejected movements; they do not establish real-world counting accuracy. The pilot detector uses different image-plane geometry and remains a separate pipeline.
+
 ## Personal session history
 
 A **summary** stores the observed rep count, start/end times and whether the set was interrupted. It does not contain camera footage, body landmarks or RIR. Saving app history does not turn the count into a verified research label.
