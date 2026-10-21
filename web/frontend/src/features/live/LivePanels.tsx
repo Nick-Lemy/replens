@@ -2,6 +2,7 @@ import { SessionSaveControl } from "../sessions/SessionSaveControl";
 import type { WorkoutSessionDraft } from "../sessions/api";
 import type { AccountUser } from "../auth/api";
 import type { TrackingStatus } from "./curlCounter";
+import type { ExperimentalRirModel } from "./experimentalRirProtocol";
 
 function timeLabel(seconds: number) {
   return `${Math.floor(seconds / 60).toString().padStart(2, "0")}:${(seconds % 60).toString().padStart(2, "0")}`;
@@ -76,6 +77,8 @@ export function LiveMetrics({
 export function ExperimentalRirPanel({
   enabled,
   onEnabledChange,
+  model,
+  onModelChange,
   status,
   value,
   error,
@@ -83,29 +86,44 @@ export function ExperimentalRirPanel({
 }: {
   enabled: boolean;
   onEnabledChange: (enabled: boolean) => void;
-  status: "off" | "loading" | "ready" | "error";
+  status: "off" | "loading" | "ready" | "error" | "unavailable";
   value: number | null;
   error: string;
   notice: string;
+  model: ExperimentalRirModel;
+  onModelChange: (model: ExperimentalRirModel) => void;
 }) {
   return (
     <section className="bg-surface border border-line rounded-[20px] p-5">
       <h2 className="font-medium text-base">Synthetic model — not validated</h2>
       <label className="mt-3 flex min-h-11 items-center gap-3 text-xs text-secondary">
         <input type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} />
-        Try experimental speed-only preview
+        Enable synthetic RIR preview
+      </label>
+      <label className="mt-2 grid gap-1.5 text-xs text-muted">
+        Preview model
+        <select
+          className="min-h-11 w-full rounded-lg border border-line bg-control px-3 text-secondary"
+          value={model}
+          onChange={(event) => onModelChange(event.target.value as ExperimentalRirModel)}
+        >
+          <option value="speed-only">Speed only (default)</option>
+          <option value="speed-movement">Speed + movement instability</option>
+        </select>
       </label>
       {enabled && (
         <div className="mt-3 text-xs leading-[1.7] text-muted" aria-live="polite">
           <p>Demo only; not exercise advice.</p>
           {status === "loading" && <p className="mt-2">Preparing synthetic preview…</p>}
-          {status === "error" && <p className="mt-2 text-secondary" role="status">Preview unavailable: {error}</p>}
+          {(status === "error" || status === "unavailable") && <p className="mt-2 text-secondary" role="status">Preview unavailable: {error}</p>}
           {status === "ready" && value === null && <p className="mt-2">A value appears only after a completed curl.</p>}
           <details className="mt-2 rounded-lg border border-line px-3 py-2">
             <summary className="cursor-pointer select-none">Model details</summary>
             <p className="mt-2">{notice || "Synthetic software check only; not research evidence or a deployable model."}</p>
             {status === "ready" && value !== null && <p className="mt-2">Raw model output: {value.toFixed(4)}</p>}
-            <p className="mt-2">This preview uses live estimated world-angle speed features. They have not been validated as equivalent to the pilot pipeline.</p>
+            <p className="mt-2">{model === "speed-only"
+              ? "Speed inputs use estimated elbow angles and have not been validated as equivalent to the pilot pipeline."
+              : "Movement instability is a wrist-tracking residual, not a calibrated tremor measure. This live approximation is not validated as equivalent to the pilot pipeline."}</p>
           </details>
         </div>
       )}

@@ -8,6 +8,7 @@ import { poseFrameFromMessage } from "./poseFrameAdapter";
 import type { PoseWorkerMessage } from "./poseWorkerProtocol";
 import { createVideoFramePump } from "./videoFramePump";
 import { extractAngularSpeedFeatures } from "./angularSpeedFeatures";
+import { extractMovementInstability } from "./movementInstabilityFeatures";
 
 export interface CompletedRepEvent {
   sessionId: number;
@@ -18,6 +19,7 @@ export interface CompletedRepEvent {
   rangeDegrees: number;
   meanUpSpeedDegS: number;
   peakUpSpeedDegS: number;
+  movementInstability: number | null;
 }
 
 const emptyResult: CounterResult = {
@@ -147,7 +149,13 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
         const features = extractAngularSpeedFeatures(next.completedRep.samples);
         if (features) {
           repSequenceRef.current += 1;
-          setCompletedRep({ ...features, endTimestampMs: next.completedRep.endTimestampMs, sessionId: sessionIdRef.current, sequence: repSequenceRef.current });
+          setCompletedRep({
+            ...features,
+            endTimestampMs: next.completedRep.endTimestampMs,
+            movementInstability: extractMovementInstability(next.completedRep.samples, features.topTimestampMs),
+            sessionId: sessionIdRef.current,
+            sequence: repSequenceRef.current,
+          });
         } else {
           setCompletedRep(null);
         }

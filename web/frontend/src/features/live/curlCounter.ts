@@ -1,4 +1,4 @@
-import type { AngularSample } from "./angularSpeedFeatures";
+import type { MovementSample } from "./movementInstabilityFeatures";
 
 export interface PoseLandmark {
   x: number;
@@ -56,7 +56,7 @@ export interface CounterResult {
 
 export interface CompletedRepSamples {
   endTimestampMs: number;
-  samples: AngularSample[];
+  samples: MovementSample[];
 }
 
 interface Sample {
@@ -137,7 +137,7 @@ export class TwoArmCurlCounter {
   private rearmTotals: [number, number] = [0, 0];
   private rearmSamples = 0;
   private lastRejection: string | null = null;
-  private candidateSamples: AngularSample[] = [];
+  private candidateSamples: MovementSample[] = [];
   private candidateSamplesUsable = true;
 
   reset(): void {
@@ -507,10 +507,22 @@ export class TwoArmCurlCounter {
       this.candidateSamplesUsable = false;
       return;
     }
+    const [left, right] = sample.arms;
+    const movement = {
+      leftWristRelativeX: left.wrist.x - left.shoulder.x,
+      leftWristRelativeY: left.wrist.y - left.shoulder.y,
+      rightWristRelativeX: right.wrist.x - right.shoulder.x,
+      rightWristRelativeY: right.wrist.y - right.shoulder.y,
+      shoulderWidth: Math.hypot(
+        left.shoulder.x - right.shoulder.x,
+        left.shoulder.y - right.shoulder.y,
+      ),
+    };
     this.candidateSamples.push({
       timestampMs: sample.timestamp,
       leftFlexionDeg: sample.smoothedAngles[0],
       rightFlexionDeg: sample.smoothedAngles[1],
+      ...movement,
     });
   }
 
