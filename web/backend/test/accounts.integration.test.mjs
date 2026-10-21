@@ -58,6 +58,36 @@ test('signup persists a hashed password and HttpOnly session', async () => {
   assert.equal(row.name, 'Test Lifter');
   assert.ok(row.password && row.password !== password);
 });
+test('workout summaries default legacy counters and validate submitted versions', async () => {
+  const endedAt = new Date(Date.now() - 10_000).toISOString();
+  const startedAt = new Date(Date.now() - 40_000).toISOString();
+  const legacyDraft = {
+    clientId: randomUUID(),
+    startedAt,
+    endedAt,
+    completedReps: 3,
+    interrupted: false,
+  };
+  const legacyResponse = await request('/api/workout-sessions', legacyDraft, { Cookie: cookie });
+  assert.equal(legacyResponse.status, 201, JSON.stringify(await legacyResponse.clone().json()));
+  const legacy = await legacyResponse.json();
+  assert.equal(legacy.counterVersion, 'world-full-v1');
+
+  const sameVersionRetry = await request('/api/workout-sessions', legacyDraft, { Cookie: cookie });
+  assert.equal(sameVersionRetry.status, 200);
+  assert.equal((await sameVersionRetry.json()).counterVersion, 'world-full-v1');
+
+  const changedVersionRetry = await request('/api/workout-sessions', { ...legacyDraft, counterVersion: 'world-full-v2' }, { Cookie: cookie });
+  assert.equal(changedVersionRetry.status, 409);
+
+  const v2Draft = { ...legacyDraft, clientId: randomUUID(), counterVersion: 'world-full-v2' };
+  const v2Response = await request('/api/workout-sessions', v2Draft, { Cookie: cookie });
+  assert.equal(v2Response.status, 201, JSON.stringify(await v2Response.clone().json()));
+  assert.equal((await v2Response.json()).counterVersion, 'world-full-v2');
+
+  const unsupportedResponse = await request('/api/workout-sessions', { ...legacyDraft, clientId: randomUUID(), counterVersion: 'world-full-v3' }, { Cookie: cookie });
+  assert.equal(unsupportedResponse.status, 400);
+});
 test('duplicate signup does not create another user', async () => {
   const response = await request('/api/auth/sign-up/email', { name: 'Test', email, password });
   assert.equal(response.status, 422);

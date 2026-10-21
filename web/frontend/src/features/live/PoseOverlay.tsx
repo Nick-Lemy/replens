@@ -23,8 +23,10 @@ export function PoseOverlay({
     const draw = () => {
       const bounds = canvas.getBoundingClientRect();
       const ratio = window.devicePixelRatio || 1;
-      canvas.width = Math.max(1, Math.round(bounds.width * ratio));
-      canvas.height = Math.max(1, Math.round(bounds.height * ratio));
+      const width = Math.max(1, Math.round(bounds.width * ratio));
+      const height = Math.max(1, Math.round(bounds.height * ratio));
+      if (canvas.width !== width) canvas.width = width;
+      if (canvas.height !== height) canvas.height = height;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
       context.clearRect(0, 0, bounds.width, bounds.height);
       if (!video.videoWidth || !video.videoHeight) return;

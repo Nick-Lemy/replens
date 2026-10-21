@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, ForbiddenException, Inject, Injectable, NotFoundException, UnsupportedMediaTypeException } from '@nestjs/common';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { AppConfig } from '../config/config.js';
-import { COUNTER_VERSION, WORKOUT_EXERCISE_ID, type WorkoutSessionDraft } from './workout-session.validation.js';
+import { WORKOUT_EXERCISE_ID, type WorkoutSessionDraft } from './workout-session.validation.js';
 import { WorkoutSessionsRepository, type WorkoutSessionCursor } from './workout-sessions.repository.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -22,7 +22,8 @@ function toItem(row: Awaited<ReturnType<WorkoutSessionsRepository['findByClientI
 }
 
 function matchesDraft(row: NonNullable<Awaited<ReturnType<WorkoutSessionsRepository['findByClientId']>>>, draft: WorkoutSessionDraft): boolean {
-  return row.startedAt.getTime() === draft.startedAt.getTime()
+  return row.counterVersion === draft.counterVersion
+    && row.startedAt.getTime() === draft.startedAt.getTime()
     && row.endedAt.getTime() === draft.endedAt.getTime()
     && row.durationSeconds === draft.durationSeconds
     && row.completedReps === draft.completedReps
@@ -57,7 +58,7 @@ export class WorkoutSessionsService {
     }
 
     try {
-      const row = await this.repository.create(userId, draft, WORKOUT_EXERCISE_ID, COUNTER_VERSION);
+      const row = await this.repository.create(userId, draft, WORKOUT_EXERCISE_ID);
       return { item: toItem(row), created: true };
     } catch (error) {
       if (!isUniqueConstraintError(error)) throw error;

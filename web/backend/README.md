@@ -101,12 +101,12 @@ All workout-session routes require the signed-in account's cookie session. The s
 
 | Method and path | Body/query | Result |
 | --- | --- | --- |
-| `POST /api/workout-sessions` | `{clientId,startedAt,endedAt,completedReps,interrupted}` | Creates a summary (201); identical retry returns the existing summary (200); conflicting retry with the same client ID returns 409 |
+| `POST /api/workout-sessions` | `{clientId,startedAt,endedAt,completedReps,interrupted,counterVersion?}` | Creates a summary (201); identical retry returns the existing summary (200); conflicting retry with the same client ID returns 409 |
 | `GET /api/workout-sessions?limit=20&cursor=...` | Optional limit 1–50 and opaque cursor | `{items,nextCursor}` ordered newest-first |
 | `GET /api/workout-sessions/:id` | — | One owner-scoped summary |
 | `DELETE /api/workout-sessions/:id` | No body; `Content-Type: application/json` required | Deletes one owner-scoped summary and returns 204 |
 
-The create body must contain exactly the five listed fields. `clientId` must be a UUID; timestamps must be ISO date-times with an offset; completed reps must be an integer from 0 through 1000; and `interrupted` must be boolean. End time must follow start time, sessions can last at most two hours, and neither timestamp may be more than five minutes in the future. The server derives duration and creation time, and fixes `exerciseId` to `two-arm-dumbbell-curl` and `counterVersion` to `world-full-v1`. It rejects unknown keys, including `userId` and client-supplied exercise/counter identifiers.
+The create body requires the five session fields; `counterVersion` is optional and defaults to `world-full-v1` for older clients. The accepted versions are `world-full-v1` and `world-full-v2`; other values are rejected. `clientId` must be a UUID; timestamps must be ISO date-times with an offset; completed reps must be an integer from 0 through 1000; and `interrupted` must be boolean. End time must follow start time, sessions can last at most two hours, and neither timestamp may be more than five minutes in the future. The server derives duration and creation time, and fixes `exerciseId` to `two-arm-dumbbell-curl`. The submitted allowlisted counter version is stored and participates in idempotency comparison. It rejects unknown keys, including `userId` and client-supplied exercise IDs.
 
 These are client-reported counting estimates for a person's own history, not validated study measurements or medical data. The API does not persist video, pose landmarks or RIR. Deleting an account cascades to that account's summaries. Mutations require an Origin matching the configured auth or frontend origin and use `Content-Type: application/json`; request bodies remain bounded to 16 KiB. Pagination is keyset-based and capped at 50 entries per page.
 
@@ -182,7 +182,7 @@ DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @replens/backend db:migrate
 pnpm --filter @replens/backend test:integration
 ```
 
-Coverage: real signup and hashing, invalid input, duplicate signup, untrusted origin rejection, HttpOnly cookie, protected current-user data, session continuity across API restart, logout/revocation, expiry, no-store aliases, body limit, unavailable email actions and rate limiting. New automated history coverage is deferred; its database/API ownership, idempotency, pagination, validation and deletion behavior are checked manually on the disposable `_test` database. Expanded integration coverage for verification, reset and the Resend transport is deferred; real Resend delivery, deployment and real-device browser behavior remain unverified.
+Coverage: real signup and hashing, invalid input, duplicate signup, untrusted origin rejection, HttpOnly cookie, protected current-user data, session continuity across API restart, logout/revocation, expiry, no-store aliases, body limit, unavailable email actions and rate limiting. The account integration flow also checks legacy counter-version defaulting, accepted `world-full-v2`, rejection of unknown versions, and version-sensitive idempotency on the disposable `_test` database. History ownership, pagination, validation and deletion remain manually checked. Expanded integration coverage for verification, reset and the Resend transport is deferred; real Resend delivery, deployment and real-device browser behavior remain unverified.
 
 The CI workflow requires checks/builds/unit tests and PostgreSQL integration tests on PRs to `dev` and `main`. Prisma CLI/client/adapter stay on matching stable versions; exact Better Auth release-age exceptions are limited to the documented 1.7.11 release family. Generated Prisma source is ignored and regenerated during check/build.
 

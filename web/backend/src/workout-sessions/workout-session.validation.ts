@@ -2,11 +2,14 @@ import { BadRequestException } from '@nestjs/common';
 
 export const WORKOUT_EXERCISE_ID = 'two-arm-dumbbell-curl';
 export const COUNTER_VERSION = 'world-full-v1';
+export const COUNTER_VERSIONS = [COUNTER_VERSION, 'world-full-v2'] as const;
+export type CounterVersion = typeof COUNTER_VERSIONS[number];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ISO_DATETIME = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,3}))?(Z|([+-])(\d{2}):(\d{2}))$/;
 
 export interface WorkoutSessionDraft {
   clientId: string;
+  counterVersion: CounterVersion;
   startedAt: Date;
   endedAt: Date;
   durationSeconds: number;
@@ -48,9 +51,12 @@ export function parseWorkoutSessionDraft(input: unknown, now = new Date()): Work
   if (!input || typeof input !== 'object' || Array.isArray(input)) return invalid();
   const body = input as Record<string, unknown>;
   const fields = Object.keys(body).sort();
-  const expectedFields = ['clientId', 'completedReps', 'endedAt', 'interrupted', 'startedAt'];
-  if (fields.length !== expectedFields.length || fields.some((field, index) => field !== expectedFields[index])) return invalid();
+  const allowedFields = ['clientId', 'completedReps', 'counterVersion', 'endedAt', 'interrupted', 'startedAt'];
+  const requiredFields = allowedFields.filter(field => field !== 'counterVersion' || body.counterVersion !== undefined);
+  if (fields.length !== requiredFields.length || fields.some(field => !allowedFields.includes(field)) || requiredFields.some(field => !fields.includes(field))) return invalid();
   if (typeof body.clientId !== 'string' || !UUID.test(body.clientId)) return invalid();
+  const counterVersion = body.counterVersion === undefined ? COUNTER_VERSION : body.counterVersion;
+  if (typeof counterVersion !== 'string' || !(COUNTER_VERSIONS as readonly string[]).includes(counterVersion)) return invalid();
   if (!Number.isInteger(body.completedReps) || (body.completedReps as number) < 0 || (body.completedReps as number) > 1000) return invalid();
   if (typeof body.interrupted !== 'boolean') return invalid();
 
@@ -62,6 +68,7 @@ export function parseWorkoutSessionDraft(input: unknown, now = new Date()): Work
 
   return {
     clientId: body.clientId.toLowerCase(),
+    counterVersion: counterVersion as CounterVersion,
     startedAt,
     endedAt,
     durationSeconds: Math.round(durationMilliseconds / 1000),
