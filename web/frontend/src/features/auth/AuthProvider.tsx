@@ -63,6 +63,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const googleMutation = useMutation({ mutationFn: ({ callbackURL, errorCallbackURL }: { callbackURL: string; errorCallbackURL: string }) => beginGoogleSignIn(callbackURL, errorCallbackURL), gcTime: 0 });
 
+  useEffect(() => {
+    const restoreGoogleNavigation = (event: PageTransitionEvent) => {
+      if (!event.persisted) return;
+      googleNavigationRef.current = false;
+      setGoogleNavigationPending(false);
+      googleMutation.reset();
+    };
+    window.addEventListener("pageshow", restoreGoogleNavigation);
+    return () => window.removeEventListener("pageshow", restoreGoogleNavigation);
+  }, [googleMutation]);
+
   const cachedUser = session.data ?? null;
   const user = session.isError || signOutFailed ? null : cachedUser;
   const status: Status = session.isPending
