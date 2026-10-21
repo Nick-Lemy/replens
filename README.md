@@ -15,7 +15,7 @@ docs/     Project proposal
 
 The current prototype is in [pilot/README.md](pilot/README.md). It counts curls and extracts movement measurements; it does not have a trained RIR predictor. Volunteer recording requires ALU ethics approval, gym permission, and individual consent.
 
-[web/README.md](web/README.md) explains the application. [training/README.md](training/README.md) explains how we will train and compare the RIR models. Training currently contains documentation only.
+[web/README.md](web/README.md) explains the application. [training/README.md](training/README.md) explains the isolated synthetic training experiment and planned real-data comparison. The synthetic experiment checks training and ONNX export; it is not a validated RIR predictor.
 
 Local model files, videos, set CSVs, and the Python environment are excluded from version control. Keep the participant code-to-name list separately in approved storage.
 

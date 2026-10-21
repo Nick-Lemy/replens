@@ -1,0 +1,7 @@
+{
+  "seed": 42,
+  "participants": 12,
+  "sets_per_participant": 2,
+  "test_fraction": 0.25,
+  "ridge_alpha": 1.0
+}
