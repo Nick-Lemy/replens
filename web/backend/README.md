@@ -32,7 +32,7 @@ Start the frontend in another terminal with `cd web/frontend` and `pnpm dev`. Do
 
 With local development configuration, open `http://localhost:3000/api/docs` for Swagger UI or `/api/docs-json` for the OpenAPI document. `API_DOCS_ENABLED` defaults to `true` outside production and `false` in production; only the literal values `true` and `false` are accepted. Set it explicitly to hide the docs locally or enable them in a controlled production environment. Disabled docs return 404. The UI and JSON document are served by this API, use relative same-origin paths, set `Cache-Control: no-store`, and do not call an external validator or CDN.
 
-The reference describes the callable API: health, account/session and the ten explicitly supported Better Auth routes, workout summaries, exercise guides, and versioned live-tracking configuration/assets. Sign in through the documented endpoint in Swagger UI; its requests include the browser's HttpOnly cookie. There is no bearer-token authorization flow or persisted Swagger authorization. Swagger does not display session cookies, secrets, or account records in the document. The docs are an API reference, not a production authorization boundary; enabling them makes the reference public at that API origin.
+The reference describes the callable API: health, account/session and the ten explicitly supported Better Auth routes, workout summaries, exercise guides, and versioned live-tracking and experimental-demo assets. Sign in through the documented endpoint in Swagger UI; its requests include the browser's HttpOnly cookie. There is no bearer-token authorization flow or persisted Swagger authorization. Swagger does not display session cookies, secrets, or account records in the document. The docs are an API reference, not a production authorization boundary; enabling them makes the reference public at that API origin.
 
 Workout DELETE requests require JSON even though the body is empty. Swagger sends `{}` with `Content-Type: application/json`. Workout summaries are client-reported estimates; no video, landmarks, RIR, or study labels are included.
 
@@ -89,6 +89,12 @@ The script downloads only the six WASM loader/binary files from the pinned `@med
 
 The config response is `no-store`. Asset URLs include both runtime and model versions and use `Cache-Control: public, max-age=31536000, immutable`. The browser can load WASM and model bytes from the same API origin. The supported exercise ID is `two-arm-dumbbell-curl`. Camera frames remain in the browser; there is no upload endpoint. This serves pose-estimation assets only; it does not claim rep-counting accuracy or produce RIR estimates.
 
+## Experimental synthetic RIR demo
+
+`GET /api/experimental-rir/config` returns a no-store contract for one fixed speed-only ONNX model trained only on generated synthetic rows. It marks `synthetic: true` and `deploymentApproved: false`, includes the exact SHA-256 and ordered inputs (`mean_up_speed_deg_s`, `peak_up_speed_deg_s`), and identifies the synthetic feature definition. `GET /api/experimental-rir/assets/:version/model.onnx` serves only that versioned, hash-verified file with immutable caching; other versions or filenames return 404. Missing, changed, or invalid bundle metadata returns 503.
+
+The ONNX artifact is copied from synthetic run `20261021T155611102710Z`; its manifest records the source artifact and dataset hashes, split counts, preprocessing, and software-only notice. This endpoint serves model bytes only: it does not run inference, store predictions, create workout history, or expose a real-user RIR estimate. The bundle is not research evidence, curl-validated, medically validated, or approved for production use. It must not be confused with the live counting feature or with a trained model based on collected study data.
+
 ## Personal workout history
 
 Apply migrations before starting the API:
@@ -123,7 +129,7 @@ These endpoints are public and accept no query parameters; any query string retu
 
 ## Backend deployment with Kamal
 
-Kamal deploys only the NestJS API to one VPS. Netlify still builds the frontend, and Miget remains the external PostgreSQL database. The API image contains the pinned MediaPipe pose files, so the VPS needs no model-file mount or manual asset download. The RIR model is not available yet.
+Kamal deploys only the NestJS API to one VPS. Netlify still builds the frontend, and Miget remains the external PostgreSQL database. The API image contains the pinned MediaPipe pose files and the explicitly synthetic experimental ONNX demo bundle, so the VPS needs no model-file mount or manual asset download. No real-data-trained or production-approved RIR model is available.
 
 1. Install [Kamal 2](https://kamal-deploy.org/docs/installation/) on your computer. Keep local Docker running for image builds. Use a VPS with SSH access and an API hostname whose DNS A record points to that VPS. Open inbound TCP 80 and 443. The simplest first setup uses root SSH; another user may need Docker installed and access configured first.
 2. From the repository root, copy `.kamal/deploy.env.example` to ignored `.kamal/deploy.env`. Enter the VPS IP, API hostname, exact HTTPS Netlify frontend origin, SSH user, private key path, and VPS CPU architecture. The private key stays on your computer.

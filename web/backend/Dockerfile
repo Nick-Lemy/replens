@@ -50,6 +50,7 @@ COPY --from=production-dependencies --chown=node:node /workspace/web/backend/nod
 COPY --from=production-dependencies --chown=node:node /workspace/package.json ./package.json
 COPY --from=production-dependencies --chown=node:node /workspace/web/backend/package.json ./web/backend/package.json
 COPY --from=workspace --chown=node:node /workspace/web/backend/dist ./web/backend/dist
+COPY --chown=node:node web/backend/assets/experimental-rir ./web/backend/assets/experimental-rir
 COPY --from=tracking-assets --chown=node:node /workspace/models/mediapipe/1.1.1 ./models/mediapipe/1.1.1
 USER node
 EXPOSE 3000
