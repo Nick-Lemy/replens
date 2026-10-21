@@ -7,6 +7,18 @@ import {
 import { poseFrameFromMessage } from "./poseFrameAdapter";
 import type { PoseWorkerMessage } from "./poseWorkerProtocol";
 import { createVideoFramePump } from "./videoFramePump";
+import { extractAngularSpeedFeatures } from "./angularSpeedFeatures";
+
+export interface CompletedRepEvent {
+  sessionId: number;
+  sequence: number;
+  endTimestampMs: number;
+  startTimestampMs: number;
+  topTimestampMs: number;
+  rangeDegrees: number;
+  meanUpSpeedDegS: number;
+  peakUpSpeedDegS: number;
+}
 
 const emptyResult: CounterResult = {
   count: 0,
@@ -16,6 +28,7 @@ const emptyResult: CounterResult = {
   angles: null,
   reason: null,
   readyToStart: false,
+  completedRep: null,
 };
 
 export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, stream: MediaStream | null) {
@@ -30,9 +43,14 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
   const [fps, setFps] = useState(0);
   const [runtimeVersion, setRuntimeVersion] = useState("");
   const fpsWindowRef = useRef({ startedAt: 0, frames: 0 });
+  const sessionIdRef = useRef(0);
+  const repSequenceRef = useRef(0);
+  const [completedRep, setCompletedRep] = useState<CompletedRepEvent | null>(null);
 
   useEffect(() => {
     if (!stream) {
+      sessionIdRef.current += 1;
+      setCompletedRep(null);
       counterRef.current.reset();
       countingRef.current = false;
       setReady(false);
@@ -81,6 +99,8 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
       active = false;
       setReady(false);
       setError(message);
+      setCompletedRep(null);
+      sessionIdRef.current += 1;
       countingRef.current = false;
       worker.terminate();
       pump.stop();
@@ -122,6 +142,16 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
       const frame = poseFrameFromMessage(message);
       const next = counterRef.current.update(frame, countingRef.current);
       countRef.current = next.count;
+      if (next.status === "both-arms") setCompletedRep(null);
+      if (next.completedRep) {
+        const features = extractAngularSpeedFeatures(next.completedRep.samples);
+        if (features) {
+          repSequenceRef.current += 1;
+          setCompletedRep({ ...features, endTimestampMs: next.completedRep.endTimestampMs, sessionId: sessionIdRef.current, sequence: repSequenceRef.current });
+        } else {
+          setCompletedRep(null);
+        }
+      }
       setResult(next);
     };
     worker.onerror = () => fail("Live tracking stopped unexpectedly. Turn the camera off and try again.");
@@ -149,6 +179,9 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
 
   const beginSet = useCallback(() => {
     const startTimestamp = performance.now();
+    sessionIdRef.current += 1;
+    repSequenceRef.current = 0;
+    setCompletedRep(null);
     counterRef.current.beginSet(startTimestamp);
     countRef.current = 0;
     countingStartedAtRef.current = startTimestamp;
@@ -159,6 +192,8 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
 
   const endSet = useCallback(() => {
     countingRef.current = false;
+    setCompletedRep(null);
+    sessionIdRef.current += 1;
     return countRef.current;
   }, []);
 
@@ -185,6 +220,8 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
     runtimeVersion,
     reason: result.reason,
     readyToStart: result.readyToStart,
+    completedRep,
+    trackingSessionId: sessionIdRef.current,
     left: result.left,
     right: result.right,
     beginSet,

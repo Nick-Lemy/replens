@@ -248,6 +248,8 @@ The user can start the countdown before stepping into camera position. When it r
 
 The updated browser counter is `world-full-v2`; older personal summaries keep their `world-full-v1` version and remain readable. These rule changes do not add an RIR predictor, video storage, or research labels. Synthetic tests check multiple frame rates and rejected movements; they do not establish real-world counting accuracy. The pilot detector uses different image-plane geometry and remains a separate pipeline.
 
+The Live page now has an optional, off-by-default synthetic ONNX preview. It derives mean and peak upward speed from the live counter's accepted curl angles and runs the pinned model in a separate browser worker. The model is explicitly synthetic and not validated; its output is a software-path demonstration, not a RIR estimate or training result. The live world-angle features have not been validated as equivalent to the pilot's image-plane feature definitions. The preview is not saved with personal history, and a preview error does not change rep counts.
+
 ## Personal session history
 
 A **summary** stores the observed rep count, start/end times and whether the set was interrupted. It does not contain camera footage, body landmarks or RIR. Saving app history does not turn the count into a verified research label.
