@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Res } from "@nestjs/common";
+import { Controller, Get, Param, Res, StreamableFile } from "@nestjs/common";
 import {
   ApiNotFoundResponse,
   ApiOkResponse,
@@ -67,13 +67,16 @@ export class TrackingController {
   getAsset(
     @Param("version") version: string,
     @Param("filename") filename: string,
-    @Res() response: Response,
+    @Res({ passthrough: true }) response: Response,
   ) {
-    if (version !== TRACKING_ASSET_VERSION) {
-      response.status(404).end();
-      return;
-    }
-    const path = this.tracking.assetPath(version, filename);
-    this.tracking.stream(path, response);
+    const stream = this.tracking.openAsset(version, filename);
+    const contentType = filename.endsWith(".wasm")
+      ? "application/wasm"
+      : filename.endsWith(".js")
+        ? "text/javascript; charset=utf-8"
+        : "application/octet-stream";
+    response.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    return new StreamableFile(stream, { type: contentType });
   }
 }
