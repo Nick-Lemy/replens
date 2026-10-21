@@ -113,6 +113,13 @@ function visible(arm: ArmLandmarks | null): arm is ArmLandmarks {
   );
 }
 
+function visibleWorld(arm: WorldArmLandmarks | null): arm is WorldArmLandmarks {
+  return !!arm && [arm.shoulder, arm.elbow, arm.wrist].every((point) =>
+    [point.x, point.y, point.z, point.visibility].every(Number.isFinite) &&
+    point.visibility >= MIN_VISIBILITY,
+  );
+}
+
 export class TwoArmCurlCounter {
   private count = 0;
   private phase: Phase = "waiting-bottom";
@@ -234,7 +241,7 @@ export class TwoArmCurlCounter {
       return this.result("both-arms", left, right);
     }
 
-    if (!frame.worldLeft || !frame.worldRight) {
+    if (!visibleWorld(frame.worldLeft) || !visibleWorld(frame.worldRight)) {
       this.registerPoseLoss(frame.timestamp);
       return this.result("both-arms", left, right);
     }

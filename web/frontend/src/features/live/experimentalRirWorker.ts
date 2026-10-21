@@ -88,7 +88,9 @@ async function initialize(requestGeneration: number, model: ExperimentalRirModel
     if (!response.ok || !(response.headers.get("content-type") ?? "").includes("application/json")) throw new Error("Synthetic model config unavailable.");
     const raw: unknown = await response.json();
     if (!validConfig(raw, model)) throw new Error("Synthetic model config was invalid.");
-    const asset = await fetch(raw.modelUrl, { cache: "no-store", credentials: "include" });
+    // The path is versioned and the backend marks it immutable; the digest below
+    // still verifies the cached bytes against the selected model contract.
+    const asset = await fetch(raw.modelUrl, { cache: "default", credentials: "include" });
     if (!asset.ok) throw new Error("Synthetic model asset unavailable.");
     const bytes = await asset.arrayBuffer();
     const digest = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (byte) => byte.toString(16).padStart(2, "0")).join("");
