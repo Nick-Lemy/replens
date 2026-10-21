@@ -50,7 +50,7 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
     needs: verify
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.REPLENS_VPS_ARCH == 'arm64' && 'ubuntu-24.04-arm' || 'ubuntu-latest' }}
     concurrency:
       group: replens-production-backend
       cancel-in-progress: false
@@ -62,12 +62,17 @@ jobs:
       REPLENS_VPS_ARCH: ${{ vars.REPLENS_VPS_ARCH || 'amd64' }}
     steps:
       - uses: actions/checkout@v4
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      - name: Expose GitHub Actions cache runtime
+        uses: ./.github/actions/expose-buildkit-runtime
       - uses: ruby/setup-ruby@v1
         with:
           ruby-version: '3.4'
       - name: Install Kamal
         run: gem install kamal -v 2.12.0 --no-document
       - name: Prepare deployment credentials
+        id: prepare_credentials
         shell: bash
         env:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
@@ -99,7 +104,14 @@ jobs:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           set -euo pipefail
-          docker build --target migration -f web/backend/Dockerfile -t "replens-migration:$GITHUB_SHA" .
+          docker buildx build \
+            --load \
+            --platform "linux/$REPLENS_VPS_ARCH" \
+            --target migration \
+            --cache-from "type=gha,version=2,scope=replens-backend-$REPLENS_VPS_ARCH" \
+            --cache-to "type=gha,version=2,scope=replens-backend-$REPLENS_VPS_ARCH,mode=max" \
+            -f web/backend/Dockerfile \
+            -t "replens-migration:$GITHUB_SHA" .
           docker run --rm -e DATABASE_URL "replens-migration:$GITHUB_SHA"
       - name: Set up fresh VPS
         if: github.event_name == 'workflow_dispatch' && inputs.first_setup
@@ -108,11 +120,38 @@ jobs:
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
         run: kamal setup
       - name: Deploy backend
+        id: deploy_backend
         if: github.event_name == 'push' || !inputs.first_setup
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
         run: kamal deploy
       - name: Verify public API
+        id: verify_public_api
         shell: bash
         run: curl --fail --show-error --silent --max-time 20 --retry 5 --retry-delay 3 "https://${REPLENS_API_HOST}/api/health"
+      - name: Collect redacted proxy and app diagnostics
+        if: failure() && steps.prepare_credentials.outcome == 'success'
+        shell: bash
+        run: |
+          set +e
+          ssh -o BatchMode=yes -o ConnectTimeout=10 -o StrictHostKeyChecking=accept-new -i "$REPLENS_SSH_KEY" "$REPLENS_SSH_USER@$REPLENS_VPS_IP" 'bash -s' <<'REMOTE'
+          set +e
+          redact_logs() {
+            sed -E \
+              -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \
+              -e 's#((DATABASE_URL|BETTER_AUTH_SECRET|RESEND_API_KEY|EMAIL_FROM)[=: ]+)[^[:space:],"]+#\1[REDACTED]#Ig' \
+              -e 's#([?][^[:space:],"]+)#[QUERY-REDACTED]#g' \
+              -e 's#((cookie|authorization):[[:space:]]*)[^[:space:],"]+#\1[REDACTED]#Ig' \
+              -e 's#(Bearer )[A-Za-z0-9._~+/-]+=*#\1[REDACTED]#Ig'
+          }
+          echo '--- recent kamal-proxy logs ---'
+          docker logs --since 20m --tail 120 kamal-proxy 2>&1 | redact_logs
+          echo '--- API containers ---'
+          docker ps -a --filter 'name=replens-api' --format '{{.Names}} {{.Status}}'
+          for container in $(docker ps -aq --filter 'name=replens-api'); do
+            echo "--- recent logs: $container ---"
+            docker logs --since 20m --tail 120 "$container" 2>&1 | redact_logs
+          done
+          REMOTE
+          exit 0
