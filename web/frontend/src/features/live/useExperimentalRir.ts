@@ -1,9 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import type { CompletedRepEvent } from "./useLiveTracking";
 import type { ExperimentalRirModel, RirWorkerResponse } from "./experimentalRirProtocol";
+import { extractMovementInstability } from "./movementInstabilityFeatures";
 
-type State = { status: "off" | "loading" | "ready" | "error" | "unavailable"; value: number | null; error: string; notice: string; model: ExperimentalRirModel | null };
-const initial: State = { status: "off", value: null, error: "", notice: "", model: null };
+type State = {
+  status: "off" | "loading" | "ready" | "error" | "unavailable";
+  value: number | null;
+  error: string;
+  errorScope: "initialization" | "prediction" | null;
+  notice: string;
+  model: ExperimentalRirModel | null;
+};
+const initial: State = { status: "off", value: null, error: "", errorScope: null, notice: "", model: null };
 
 export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel, trackingReady: boolean, sessionId: number, completedRep: CompletedRepEvent | null) {
   const [state, setState] = useState<State>(initial);
@@ -20,7 +28,10 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
     if (!enabled || !trackingReady) {
       runtimeReadyRef.current = false;
       setRuntimeReady(false);
-      setState(enabled ? { ...initial, model, status: "loading" } : initial);
+      if (!enabled) setState(initial);
+      else setState((current) => current.errorScope === "initialization"
+        ? current
+        : { ...initial, model, status: "loading" });
       return;
     }
     let active = true;
@@ -34,7 +45,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
     try {
       worker = new Worker(new URL("./experimentalRirWorker.ts", import.meta.url), { type: "module", name: "replens-synthetic-rir" });
     } catch {
-      setState({ ...initial, model, status: "error", error: "Synthetic preview could not start in this browser." });
+      setState({ ...initial, model, status: "error", errorScope: "initialization", error: "Synthetic preview could not start in this browser." });
       return;
     }
     workerRef.current = worker;
@@ -43,7 +54,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
       active = false;
       runtimeReadyRef.current = false;
       setRuntimeReady(false);
-      setState({ ...initial, model, status: "error", error: "Synthetic preview is taking too long to load." });
+      setState({ ...initial, model, status: "error", errorScope: "initialization", error: "Synthetic preview is taking too long to load." });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
     };
@@ -56,7 +67,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
         clearTimeout(initTimer);
         runtimeReadyRef.current = true;
         setRuntimeReady(true);
-        setState({ status: "ready", value: null, error: "", notice: message.notice, model });
+        setState({ status: "ready", value: null, error: "", errorScope: null, notice: message.notice, model });
         return;
       }
       if (message.type === "error") {
@@ -70,7 +81,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
           worker.terminate();
           if (workerRef.current === worker) workerRef.current = null;
         }
-        setState((current) => ({ ...current, model, status: "error", value: null, error: message.message }));
+        setState((current) => ({ ...current, model, status: "error", value: null, errorScope: message.requestId === undefined ? "initialization" : "prediction", error: message.message }));
         return;
       }
       if (message.type === "prediction") {
@@ -86,7 +97,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
       active = false;
       runtimeReadyRef.current = false;
       setRuntimeReady(false);
-      setState({ ...initial, model, status: "error", error: "Synthetic preview stopped unexpectedly." });
+      setState({ ...initial, model, status: "error", errorScope: "initialization", error: "Synthetic preview stopped unexpectedly." });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
     };
@@ -95,7 +106,7 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
       active = false;
       runtimeReadyRef.current = false;
       setRuntimeReady(false);
-      setState({ ...initial, model, status: "error", error: "Synthetic preview returned an unreadable result." });
+      setState({ ...initial, model, status: "error", errorScope: "initialization", error: "Synthetic preview returned an unreadable result." });
       worker.terminate();
       if (workerRef.current === worker) workerRef.current = null;
     };
@@ -116,7 +127,10 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
   useEffect(() => {
     const worker = workerRef.current;
     if (!enabled || !trackingReady) {
-      setState(enabled ? { ...initial, model, status: "loading" } : initial);
+      if (!enabled) setState(initial);
+      else setState((current) => current.errorScope === "initialization"
+        ? current
+        : { ...initial, model, status: "loading" });
       return;
     }
     if (!completedRep || completedRep.sessionId !== sessionId) {
@@ -124,33 +138,38 @@ export function useExperimentalRir(enabled: boolean, model: ExperimentalRirModel
       consumedRef.current = { sessionId, sequence: 0 };
       if (predictionTimerRef.current !== null) clearTimeout(predictionTimerRef.current);
       predictionTimerRef.current = null;
-      setState((current) => current.value === null ? current : { ...current, value: null });
+      setState((current) => current.errorScope === "initialization"
+        ? { ...current, value: null }
+        : { ...current, status: runtimeReadyRef.current ? "ready" : "loading", value: null, error: "", errorScope: null });
       return;
     }
     if (consumedRef.current.sessionId !== sessionId) consumedRef.current = { sessionId, sequence: 0 };
     if (completedRep.sequence <= consumedRef.current.sequence) return;
     if (!runtimeReadyRef.current || !worker) return;
-    if (model === "speed-movement" && completedRep.movementInstability === null) {
+    const movementInstability = model === "speed-movement"
+      ? extractMovementInstability(completedRep.samples, completedRep.topTimestampMs)
+      : null;
+    if (model === "speed-movement" && movementInstability === null) {
       consumedRef.current.sequence = completedRep.sequence;
       activeRef.current = { ...activeRef.current, sessionId, requestId: ++requestRef.current };
       if (predictionTimerRef.current !== null) clearTimeout(predictionTimerRef.current);
       predictionTimerRef.current = null;
-      setState((current) => ({ ...current, status: "unavailable", value: null, error: "Movement-instability input is unavailable for this curl. The counter still accepts the curl." }));
+      setState((current) => ({ ...current, status: "unavailable", value: null, errorScope: "prediction", error: "Movement-instability input is unavailable for this curl. The counter still accepts the curl." }));
       return;
     }
     consumedRef.current.sequence = completedRep.sequence;
     if (predictionTimerRef.current !== null) clearTimeout(predictionTimerRef.current);
     const requestId = ++requestRef.current;
     activeRef.current = { generation: activeRef.current.generation, sessionId, requestId };
-    setState((current) => ({ ...current, value: null, error: "", status: "loading" }));
+    setState((current) => ({ ...current, value: null, error: "", errorScope: null, status: "loading" }));
     const features = model === "speed-movement"
-      ? [completedRep.meanUpSpeedDegS, completedRep.peakUpSpeedDegS, completedRep.movementInstability!]
+      ? [completedRep.meanUpSpeedDegS, completedRep.peakUpSpeedDegS, movementInstability!]
       : [completedRep.meanUpSpeedDegS, completedRep.peakUpSpeedDegS];
     worker.postMessage({ type: "predict", generation: activeRef.current.generation, requestId, sessionId, features });
     predictionTimerRef.current = window.setTimeout(() => {
       if (activeRef.current.requestId === requestId) {
         activeRef.current = { ...activeRef.current, requestId: ++requestRef.current };
-        setState((current) => ({ ...current, status: "error", value: null, error: "Synthetic preview timed out." }));
+        setState((current) => ({ ...current, status: "error", value: null, errorScope: "prediction", error: "Synthetic preview timed out." }));
       }
     }, 5_000);
   }, [completedRep, enabled, model, runtimeReady, sessionId, trackingReady]);

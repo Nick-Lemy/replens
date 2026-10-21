@@ -104,10 +104,11 @@ export function extractMovementInstability(
   const residuals: number[][] = [];
   for (const channel of channels) {
     const normalizedSamples = lift.map((sample, index) => ({ ...sample, normalized: channel[index] }));
+    let right = 1;
     const sampled = uniformTimes.map((time) => {
       if (time <= normalizedSamples[0].timestampMs) return normalizedSamples[0].normalized;
       if (time >= normalizedSamples[normalizedSamples.length - 1].timestampMs) return normalizedSamples[normalizedSamples.length - 1].normalized;
-      const right = normalizedSamples.findIndex((sample) => sample.timestampMs >= time);
+      while (right < normalizedSamples.length - 1 && normalizedSamples[right].timestampMs < time) right += 1;
       const before = normalizedSamples[right - 1];
       const after = normalizedSamples[right];
       const fraction = (time - before.timestampMs) / (after.timestampMs - before.timestampMs);
