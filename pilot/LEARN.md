@@ -244,6 +244,8 @@ The counter smooths angles using elapsed time: a 220 ms time constant gives comp
 
 Before a set begins, visible preview frames calibrate the extended-arm position without adding reps. Starting a set keeps that calibration only when both arms are still at the bottom; starting during a curl discards the partial movement. A rep must show both arms reaching the top together, wrist rise, limited elbow movement, and a return to the bottom. A short bottom re-arm period prevents one return from starting a second count. The optional tracking details show the runtime version, observed frame rate, estimated arm bend and a plain-language rejection reason.
 
+The user can start the countdown before stepping into camera position. When it reaches zero, the session waits until both arms are visibly extended; the rep counter starts only after that fresh start-position check.
+
 The updated browser counter is `world-full-v2`; older personal summaries keep their `world-full-v1` version and remain readable. These rule changes do not add an RIR predictor, video storage, or research labels. Synthetic tests check multiple frame rates and rejected movements; they do not establish real-world counting accuracy. The pilot detector uses different image-plane geometry and remains a separate pipeline.
 
 ## Personal session history
