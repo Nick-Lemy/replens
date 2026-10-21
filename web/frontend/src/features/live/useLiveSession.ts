@@ -4,6 +4,7 @@ import type { WorkoutSessionDraft } from "../sessions/api";
 interface LiveSessionOptions {
   stream: MediaStream | null;
   trackingReady: boolean;
+  positionReady: boolean;
   trackingError: string;
   countdownSeconds: number;
   userId: string | null;
@@ -15,6 +16,7 @@ interface LiveSessionOptions {
 export function useLiveSession({
   stream,
   trackingReady,
+  positionReady,
   trackingError,
   countdownSeconds,
   userId,
@@ -75,6 +77,7 @@ export function useLiveSession({
       return;
     }
     if (countdown === 0) {
+      if (!positionReady) return;
       const startTime = Date.now();
       startedAt.current = startTime;
       startedByUserId.current = userId;
@@ -88,7 +91,7 @@ export function useLiveSession({
     }
     const timer = window.setTimeout(() => setCountdown(countdown - 1), 1_000);
     return () => clearTimeout(timer);
-  }, [countdown, stream, trackingReady, beginSet, userId]);
+  }, [countdown, stream, trackingReady, positionReady, beginSet, userId]);
 
   useEffect(() => {
     if (!running) return;

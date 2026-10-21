@@ -28,6 +28,7 @@ export function Live({
   const session = useLiveSession({
     stream,
     trackingReady: tracking.ready,
+    positionReady: tracking.readyToStart,
     trackingError: tracking.error,
     countdownSeconds,
     userId: user?.id ?? null,
@@ -180,6 +181,15 @@ export function Live({
                 {countdown}
               </div>
             )}
+            {countdown === 0 && (
+              <div
+                className="absolute inset-0 grid place-items-center text-center px-6 text-lg bg-[#14161370] text-white font-medium"
+                role="status"
+                aria-live="polite"
+              >
+                Hold both arms down to begin
+              </div>
+            )}
             {stream && (
               <div className="absolute bottom-5 left-5.5 text-[#f5f5f0] py-2.5 px-3.5 bg-[#141613a6] rounded-[9px] flex gap-4 items-center">
                 <span className="text-[8px] tracking-[0.12em]">
@@ -260,14 +270,12 @@ export function Live({
                 ) : (
                   <button
                     className="flex items-center justify-center gap-5 min-h-13 rounded-xl py-3.5 px-5 text-[13px] font-semibold w-full bg-accent text-on-accent disabled:opacity-50"
-                    disabled={!tracking.ready || !tracking.readyToStart}
+                    disabled={!tracking.ready}
                     onClick={session.startCountdown}
                   >
                     {!tracking.ready
                       ? "Preparing tracking…"
-                      : tracking.readyToStart
-                        ? "Start live session"
-                        : "Hold arms extended"}
+                      : "Start live session"}
                   </button>
                 )}
                 {!running && (
