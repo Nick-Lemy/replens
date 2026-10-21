@@ -18,8 +18,22 @@ RUN CI=true pnpm install --frozen-lockfile
 COPY web/backend web/backend
 RUN CI=true pnpm --filter @replens/backend build
 
+FROM base AS tracking-assets
+WORKDIR /workspace
+COPY web/backend/scripts/prepare-tracking-assets.mjs web/backend/scripts/prepare-tracking-assets.mjs
+RUN node web/backend/scripts/prepare-tracking-assets.mjs
+
 # This image is run explicitly by the operator to apply migrations.
-FROM workspace AS migration
+FROM base AS migration
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .husky/install.mjs .husky/install.mjs
+COPY web/backend/package.json web/backend/package.json
+COPY web/frontend/package.json web/frontend/package.json
+RUN CI=true pnpm install --frozen-lockfile --filter @replens/backend...
+COPY web/backend/prisma.config.ts web/backend/prisma.config.ts
+COPY web/backend/prisma web/backend/prisma
 ENV NODE_ENV=production
 CMD ["pnpm", "--filter", "@replens/backend", "db:migrate"]
 
@@ -41,6 +55,7 @@ COPY --from=production-dependencies --chown=node:node /workspace/web/backend/nod
 COPY --from=production-dependencies --chown=node:node /workspace/package.json ./package.json
 COPY --from=production-dependencies --chown=node:node /workspace/web/backend/package.json ./web/backend/package.json
 COPY --from=workspace --chown=node:node /workspace/web/backend/dist ./web/backend/dist
+COPY --from=tracking-assets --chown=node:node /workspace/models/mediapipe/1.1.1 ./models/mediapipe/1.1.1
 USER node
 EXPOSE 3000
 CMD ["node", "web/backend/dist/main.js"]

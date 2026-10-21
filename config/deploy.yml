@@ -1,0 +1,47 @@
+<%
+  require "dotenv"
+  Dotenv.load(".kamal/deploy.env")
+  %w[REPLENS_VPS_IP REPLENS_API_HOST REPLENS_FRONTEND_ORIGIN REPLENS_SSH_KEY].each do |key|
+    raise "Set #{key} in .kamal/deploy.env" if ENV[key].to_s.empty?
+  end
+%>
+service: replens-api
+image: replens-api
+
+servers:
+  web:
+    - <%= ENV.fetch("REPLENS_VPS_IP") %>
+
+proxy:
+  host: <%= ENV.fetch("REPLENS_API_HOST") %>
+  ssl: true
+  app_port: 3000
+  healthcheck:
+    path: /api/health
+
+registry:
+  server: localhost:5555
+
+builder:
+  arch: <%= ENV.fetch("REPLENS_VPS_ARCH", "amd64") %>
+  context: .
+  dockerfile: web/backend/Dockerfile
+  target: api
+
+ssh:
+  user: <%= ENV.fetch("REPLENS_SSH_USER", "root") %>
+  keys:
+    - <%= ENV.fetch("REPLENS_SSH_KEY") %>
+
+env:
+  clear:
+    NODE_ENV: production
+    HOST: 0.0.0.0
+    PORT: "3000"
+    BETTER_AUTH_URL: <%= ENV.fetch("REPLENS_FRONTEND_ORIGIN") %>
+    FRONTEND_ORIGINS: <%= ENV.fetch("REPLENS_FRONTEND_ORIGIN") %>
+    API_DOCS_ENABLED: "false"
+    TRACKING_ASSET_DIR: /workspace/models/mediapipe/1.1.1
+  secret:
+    - DATABASE_URL
+    - BETTER_AUTH_SECRET

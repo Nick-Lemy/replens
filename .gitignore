@@ -13,6 +13,8 @@ data/
 .env
 .env.*
 !.env.example
+.kamal/deploy.env
+.kamal/secrets
 node_modules/
 .next/
 
@@ -31,3 +33,7 @@ web/backend/src/generated/
 **/test-results/
 **/playwright-report/
 web/backend/deploy/backups/
+.agents
+.claude
+.windsurf
+skills-lock.json

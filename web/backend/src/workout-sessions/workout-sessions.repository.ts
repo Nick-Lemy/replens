@@ -15,9 +15,9 @@ export class WorkoutSessionsRepository {
     return this.database.workoutSession.findUnique({ where: { userId_clientId: { userId, clientId } } });
   }
 
-  create(userId: string, draft: WorkoutSessionDraft, exerciseId: string, counterVersion: string) {
+  create(userId: string, draft: WorkoutSessionDraft, exerciseId: string) {
     return this.database.workoutSession.create({
-      data: { ...draft, userId, exerciseId, counterVersion },
+      data: { ...draft, userId, exerciseId },
     });
   }
 

@@ -6,15 +6,12 @@
     "node": ">=24.0.0"
   },
   "scripts": {
-    "dev": "pnpm --parallel --filter \"@replens/*\" run dev",
-    "dev:frontend": "pnpm --filter @replens/frontend dev",
-    "dev:backend": "pnpm --filter @replens/backend dev",
     "build": "pnpm -r build",
     "check": "pnpm -r check",
     "test": "pnpm -r --if-present test",
+    "db:migrate:miget": "node scripts/migrate-miget.mjs",
     "prepare": "node .husky/install.mjs",
-    "hooks:install": "husky",
-    "start:backend": "pnpm --filter @replens/backend start:prod"
+    "hooks:install": "husky"
   },
   "packageManager": "pnpm@11.25.0",
   "devDependencies": {

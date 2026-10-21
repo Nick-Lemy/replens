@@ -55,12 +55,12 @@ export class WorkoutSessionsController {
   @ApiOperation({
     summary: "Save a client-reported session summary",
     description:
-      "Duration, exercise ID, counter version, and creation time are server-derived. Same-client retries return the existing summary; changed data conflicts.",
+      "Duration, exercise ID, and creation time are server-derived. The client counter version is validated against an allowlist. Same-client retries return the existing summary; changed data conflicts.",
   })
   @ApiBody({
     type: CreateWorkoutSessionDto,
     description:
-      "Exactly these five fields are accepted. Extra keys are rejected. Times must be valid ISO date-times, start before end, duration at most two hours, and no more than five minutes in the future.",
+      "The five session fields are required; counterVersion is optional and defaults to world-full-v1. Extra keys and unsupported counter versions are rejected. Times must be valid ISO date-times, start before end, duration at most two hours, and no more than five minutes in the future.",
   })
   @ApiCreatedResponse({ type: WorkoutSessionDto, description: "Created." })
   @ApiOkResponse({

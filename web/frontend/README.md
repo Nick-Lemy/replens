@@ -8,10 +8,11 @@ From the repository root:
 
 ```bash
 pnpm install
-pnpm dev:frontend
+cd web/frontend
+pnpm dev
 ```
 
-Open http://localhost:5173. `pnpm dev` starts the frontend and NestJS backend together. The app shell and live session remain navigable if the exercise-guide API is unavailable; Home and Guide show a retry state. Vite proxies `/api` requests to port 3000; `API_PROXY_TARGET` can override this development-only destination.
+Open http://localhost:5173. This command starts only the frontend. Run `pnpm start:dev` separately in `web/backend` for accounts, guides and session history. The app shell and live session remain navigable if the exercise-guide API is unavailable; Home and Guide show a retry state. Vite proxies `/api` requests to port 3000; `API_PROXY_TARGET` can override this development-only destination.
 
 ## Implemented interface
 
@@ -41,7 +42,7 @@ Only static shell assets are cached. Auth/API requests, model files, camera foot
 
 Netlify builds from the repo root with `pnpm --filter @replens/frontend build:netlify` and publishes `web/frontend/dist`; `netlify.toml` defines it. Set the Netlify build environment variable `API_UPSTREAM_ORIGIN` to the API's HTTPS origin only, such as `https://api.example.com` (no path or trailing route). The build fails before compiling if this value is absent or invalid. It writes a forced `/api/*` proxy redirect to the same API path, so the frontend continues to use relative `/api` requests and API errors cannot fall through to the SPA shell. Do not publish with a placeholder hostname. Ordinary local `pnpm build` does not need this variable and clears any previous redirect artifact.
 
-The backend deployment uses `API_HOST` for the API hostname and `FRONTEND_ORIGIN` for the public frontend URL. Configure `FRONTEND_ORIGIN` to the exact HTTPS Netlify site origin so Better Auth can issue host-only Secure cookies through the same-origin proxy. Actual production URLs remain unset until deployment domains are chosen. Camera access requires HTTPS or localhost. A plain HTTP LAN address on a phone is not sufficient.
+The Kamal deployment uses `REPLENS_API_HOST` for the API hostname and `REPLENS_FRONTEND_ORIGIN` for the public frontend URL. Configure `REPLENS_FRONTEND_ORIGIN` to the exact HTTPS Netlify site origin so Better Auth can issue host-only Secure cookies through the same-origin proxy. Actual production URLs remain unset until deployment domains are chosen. Camera access requires HTTPS or localhost. A plain HTTP LAN address on a phone is not sufficient.
 
 ## Files to read
 
@@ -109,7 +110,7 @@ With the local backend running, open Swagger UI at `http://localhost:3000/api/do
 
 Production Swagger is disabled by default. To expose it intentionally, set `API_DOCS_ENABLED=true` in the backend environment; when enabled through the Netlify API proxy, append `/api/docs` to the configured frontend URL to open Swagger UI. With the flag false, both docs routes return 404. The Swagger UI uses relative API paths and same-origin credentials for Try it out. Authenticate through the documented sign-in endpoint or the app on that same origin; browser cookies are used for protected calls. Do not copy or store Better Auth response tokens. No app button or authentication bypass is added for the API explorer.
 
-Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production Netlify builds require `API_UPSTREAM_ORIGIN` as described above; configure the backend's `FRONTEND_ORIGIN` to the Netlify origin for host-only Secure cookies.
+Local Vite proxies `/api` to `http://127.0.0.1:3000`. `API_PROXY_TARGET` can override that development-only destination. Production Netlify builds require `API_UPSTREAM_ORIGIN` as described above; configure Kamal's `REPLENS_FRONTEND_ORIGIN` to the Netlify origin for host-only Secure cookies.
 
 ### Browser verification
 

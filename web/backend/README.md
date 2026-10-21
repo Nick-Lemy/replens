@@ -17,10 +17,16 @@ cd web/backend
 docker compose --env-file .env -f compose.dev.yml up -d
 cd ../..
 pnpm --filter @replens/backend db:migrate
-pnpm dev
 ```
 
-Do not run `down -v` against a database containing records you need. The API loads `web/backend/.env` when run through its workspace scripts. Configuration rejects missing database/secret, invalid ports, wildcard/path origins and non-HTTPS production origins. `GET /api/health` remains a liveness response, not a database-readiness guarantee.
+If using Miget, skip the local Compose database and run `pnpm db:migrate:miget` from the repository root only when a new migration needs applying. Start this API separately:
+
+```sh
+cd web/backend
+pnpm start:dev
+```
+
+Start the frontend in another terminal with `cd web/frontend` and `pnpm dev`. Do not run `down -v` against a database containing records you need. The API loads `web/backend/.env` when run through its workspace scripts. Configuration rejects missing database/secret, invalid ports, wildcard/path origins and non-HTTPS production origins. `GET /api/health` remains a liveness response, not a database-readiness guarantee.
 
 ## Interactive API reference
 
@@ -62,9 +68,9 @@ Sessions last seven days with database-backed validation (no cookie cache), and 
 
 ## Deployment configuration
 
-Set `NODE_ENV=production`, explicit HTTPS `BETTER_AUTH_URL` and comma-separated exact `FRONTEND_ORIGINS`. Frontend/API need same-site custom domains (for example app.example.com and api.example.com), or a verified same-origin proxy. Unrelated Netlify/VPS domains can trigger third-party-cookie restrictions; changing SameSite alone does not make that reliable. Deployment is not yet verified.
+Set `NODE_ENV=production`, explicit HTTPS `BETTER_AUTH_URL` and comma-separated exact `FRONTEND_ORIGINS`. Netlify's same-origin `/api` proxy lets the backend use the public frontend origin for both settings. Cookie behavior still needs verification after deployment.
 
-No proxy is trusted by default. For Caddy, configure `TRUSTED_PROXY_CIDRS` with only its exact source IP or tightly scoped network, and keep the API inaccessible directly from the internet. Express derives the client IP using that trust list; the auth bridge overwrites its private IP header so clients cannot spoof rate-limit identity. Caddy must sanitize forwarded headers. Never set broad all-network trust. The optional Compose file is local development only, not a production deployment.
+No proxy is trusted by default. Kamal's HTTPS proxy does not forward client IP headers by default. This keeps client-supplied headers out of rate-limit identity, but users behind Netlify may share an apparent IP and rate limits can group them. Revisit this after hosted checks. The optional Compose file is for a local development database only.
 
 ## Live tracking assets
 
@@ -95,12 +101,12 @@ All workout-session routes require the signed-in account's cookie session. The s
 
 | Method and path | Body/query | Result |
 | --- | --- | --- |
-| `POST /api/workout-sessions` | `{clientId,startedAt,endedAt,completedReps,interrupted}` | Creates a summary (201); identical retry returns the existing summary (200); conflicting retry with the same client ID returns 409 |
+| `POST /api/workout-sessions` | `{clientId,startedAt,endedAt,completedReps,interrupted,counterVersion?}` | Creates a summary (201); identical retry returns the existing summary (200); conflicting retry with the same client ID returns 409 |
 | `GET /api/workout-sessions?limit=20&cursor=...` | Optional limit 1–50 and opaque cursor | `{items,nextCursor}` ordered newest-first |
 | `GET /api/workout-sessions/:id` | — | One owner-scoped summary |
 | `DELETE /api/workout-sessions/:id` | No body; `Content-Type: application/json` required | Deletes one owner-scoped summary and returns 204 |
 
-The create body must contain exactly the five listed fields. `clientId` must be a UUID; timestamps must be ISO date-times with an offset; completed reps must be an integer from 0 through 1000; and `interrupted` must be boolean. End time must follow start time, sessions can last at most two hours, and neither timestamp may be more than five minutes in the future. The server derives duration and creation time, and fixes `exerciseId` to `two-arm-dumbbell-curl` and `counterVersion` to `world-full-v1`. It rejects unknown keys, including `userId` and client-supplied exercise/counter identifiers.
+The create body requires the five session fields; `counterVersion` is optional and defaults to `world-full-v1` for older clients. The accepted versions are `world-full-v1` and `world-full-v2`; other values are rejected. `clientId` must be a UUID; timestamps must be ISO date-times with an offset; completed reps must be an integer from 0 through 1000; and `interrupted` must be boolean. End time must follow start time, sessions can last at most two hours, and neither timestamp may be more than five minutes in the future. The server derives duration and creation time, and fixes `exerciseId` to `two-arm-dumbbell-curl`. The submitted allowlisted counter version is stored and participates in idempotency comparison. It rejects unknown keys, including `userId` and client-supplied exercise IDs.
 
 These are client-reported counting estimates for a person's own history, not validated study measurements or medical data. The API does not persist video, pose landmarks or RIR. Deleting an account cascades to that account's summaries. Mutations require an Origin matching the configured auth or frontend origin and use `Content-Type: application/json`; request bodies remain bounded to 16 KiB. Pagination is keyset-based and capped at 50 entries per page.
 
@@ -115,61 +121,49 @@ The backend serves the existing 14 authored exercise guides and their curated ph
 
 These endpoints are public and accept no query parameters; any query string returns 400. Successful responses use `Cache-Control: public, max-age=300`; errors are not cached. The frontend can migrate its catalog reads to these same-origin routes while retaining its existing search/filter behavior; the backend does not filter the fixed catalog. API responses remain outside the service-worker shell cache.
 
-## VPS deployment configuration
+## Backend deployment with Kamal
 
-The deployment files under `deploy/` prepare a Docker Compose stack for one VPS. They have not been used to publish a service. No production hostname, Netlify proxy target, credentials, VPS, or production database was supplied, so DNS, TLS issuance, browser cookie behavior, and real Resend delivery remain unverified.
+Kamal deploys only the NestJS API to one VPS. Netlify still builds the frontend, and Miget remains the external PostgreSQL database. The API image contains the pinned MediaPipe pose files, so the VPS needs no model-file mount or manual asset download. The RIR model is not available yet.
 
-Copy `deploy/production.env.example` to the ignored `deploy/.env` and replace every example value. Set `API_HOST` to the API hostname that will point to the VPS. Set `FRONTEND_ORIGIN` to the exact HTTPS Netlify site origin. Because the browser calls same-origin `/api`, Netlify must proxy `/api/*` to `https://API_HOST`; the frontend `build:netlify` command generates this route from its required `API_UPSTREAM_ORIGIN` build setting. `BETTER_AUTH_URL` and `FRONTEND_ORIGINS` are set to `FRONTEND_ORIGIN` for this proxy arrangement. The template trusts one exact frontend origin; preview URLs are not automatically trusted. `API_DOCS_ENABLED` defaults to false in the production Compose stack; enable the docs only when public API documentation is intended. Use a URL-safe database password and put the identical password in `POSTGRES_PASSWORD` and `DATABASE_URL`. Keep the generated auth secret and Resend credentials private.
+1. Install [Kamal 2](https://kamal-deploy.org/docs/installation/) on your computer. Keep local Docker running for image builds. Use a VPS with SSH access and an API hostname whose DNS A record points to that VPS. Open inbound TCP 80 and 443. The simplest first setup uses root SSH; another user may need Docker installed and access configured first.
+2. From the repository root, copy `.kamal/deploy.env.example` to ignored `.kamal/deploy.env`. Enter the VPS IP, API hostname, exact HTTPS Netlify frontend origin, SSH user, private key path, and VPS CPU architecture. The private key stays on your computer.
+3. Copy `.kamal/secrets.example` to ignored `.kamal/secrets`. Enter Miget's external `DATABASE_URL` and a new production `BETTER_AUTH_SECRET` of at least 32 characters. Rotate the Miget password previously shared in chat. Do not put credentials in tracked YAML, the frontend, or Netlify.
+4. Apply any pending database migrations with `pnpm db:migrate:miget` from the repository root, after taking a Miget backup. The existing migration helper uses a temporary local Docker container. Kamal does not run migrations automatically.
+5. Run `kamal config` to review the resolved configuration, then `kamal setup` for first deployment. Run `kamal deploy` for later releases. Kamal starts Docker on a fresh root-access VPS, a local image registry and its HTTPS proxy; it builds the backend image locally and uploads it. It is not a zero-touch server: you still need DNS, a reachable VPS, SSH, open ports and a backup plan.
+6. Set Netlify's `API_UPSTREAM_ORIGIN` build variable to `https://<your API hostname>`, then deploy the frontend. Its generated `/api/*` proxy sends browser API calls to the VPS while retaining the frontend origin for cookies.
 
-The API and database have no published host ports. Caddy alone publishes 80/443 (default bind `0.0.0.0`) and proxies only `/api` routes; other paths return 404. Set `PUBLIC_BIND_ADDRESS=127.0.0.1` and nonstandard host ports for a local-only Docker smoke test. PostgreSQL is on an internal network. Caddy and the API use a dedicated edge network with fixed private addresses so Express trusts only the Caddy container as a proxy. Caddy replaces the forwarded client-IP header with its immediate peer address. When Netlify proxies a request, that peer is a Netlify edge; the API cannot identify the original browser IP from this configuration, so its existing IP rate limits can group users behind shared Netlify edges. Do not add trust for client-supplied IP headers.
+Verify `https://<API hostname>/api/health` first, then test signup, reload/signin, history and live rep counting through the **public Netlify frontend URL**. The health route is a process liveness check; it does not prove database connectivity. Production Swagger is disabled by default; change `API_DOCS_ENABLED` in `config/deploy.yml` to `true` only if you intend to expose the API reference publicly, then redeploy.
 
-The API image uses the Node 24 official image and pnpm 11.25.0, installs only backend production dependencies in its runtime stage, runs as the non-root `node` user, has a read-only root filesystem, and drops Linux capabilities. Ignored `models/mediapipe/1.1.1` files are mounted read-only. Database data and Caddy certificate/configuration data use named volumes. Migrations run only through the explicit `migrate` service; API startup never migrates automatically.
+For email verification and reset, add both `RESEND_API_KEY` and `EMAIL_FROM` to ignored `.kamal/secrets` and list both under `env.secret` in `config/deploy.yml`. Then redeploy. Until both are configured, signup/signin work but email actions return unavailable. Test delivery with a sender domain you control.
 
-### First deployment and updates
+Kamal's image rollback does not reverse database migrations. Back up Miget before schema changes and check old/new schema compatibility. Public DNS, TLS, Netlify cookie behavior, Miget access from the VPS, email delivery, and real-phone performance remain unverified until you supply hosting details and deploy.
 
-Run these commands from the repository root after the VPS DNS A record points to the host and the firewall permits inbound TCP 80/443 (UDP 443 is optional for HTTP/3):
+### Automatic deployment from `main`
 
-```sh
-cp web/backend/deploy/production.env.example web/backend/deploy/.env
-# Edit the ignored .env with the real API host, frontend origin and unique secrets.
-node web/backend/scripts/prepare-tracking-assets.mjs
-cd web/backend/deploy
-docker compose --env-file .env -f compose.yml config -q
-docker compose --env-file .env -f compose.yml build api migrate
-docker compose --env-file .env -f compose.yml up -d db
-docker compose --env-file .env -f compose.yml --profile ops run --rm migrate
-docker compose --env-file .env -f compose.yml up -d api caddy
-API_HOST='the exact public API hostname from deploy/.env'
-curl --fail "https://${API_HOST}/api/health"
-```
+The `deploy` job in `.github/workflows/checks.yml` runs after the existing checks pass on a push to `main`. It verifies SSH, applies pending Prisma migrations from the committed migration files, deploys with Kamal, and checks the public health URL. A failed check or migration stops deployment. Pull requests and pushes to `dev` do not deploy. The job is disabled until the repository variable `DEPLOY_ENABLED` is set to `true`. It uses repository secrets so this private repository does not depend on a paid GitHub environment feature.
 
-Before each release, take a database backup, set `DEPLOY_VERSION` to the source commit (for example its short Git SHA), build the API and migration images, review the migration, run the explicit migration command, then start the new API. Keep earlier versioned images for rollback. Roll back code by restoring the previous `DEPLOY_VERSION` and running `docker compose ... up -d --no-build api`; do not roll back schema automatically. Confirm that the migration remains compatible with the old code first. Never use `docker compose down -v` on a database volume you need.
+Set these GitHub Actions **variables** in repository Settings → Secrets and variables → Actions:
 
-### Database backup and restore
+| Variable | Value |
+| --- | --- |
+| `DEPLOY_ENABLED` | `true` after the VPS, DNS, backup policy and credentials are ready |
+| `REPLENS_VPS_IP` | VPS public IP |
+| `REPLENS_API_HOST` | API hostname without `https://` |
+| `REPLENS_FRONTEND_ORIGIN` | Exact HTTPS Netlify frontend origin |
+| `REPLENS_SSH_USER` | SSH user; defaults to `root` |
+| `REPLENS_VPS_ARCH` | `amd64` or `arm64`; defaults to `amd64` |
 
-Create a private local backup directory and stream a custom-format PostgreSQL dump from the running database container:
+Set these **repository secrets** in the same Actions settings page:
 
-```sh
-umask 077
-BACKUP_DIR="$HOME/replens-backups"
-mkdir -p "$BACKUP_DIR"
-docker compose --env-file .env -f compose.yml exec -T db pg_dump -U replens -d replens -Fc > "$BACKUP_DIR/replens-$(date -u +%Y%m%dT%H%M%SZ).dump"
-```
+| Secret | Value |
+| --- | --- |
+| `DEPLOY_SSH_PRIVATE_KEY` | Private key for an SSH account authorized on this VPS; never paste it into chat or Git |
+| `DATABASE_URL` | Miget's external PostgreSQL URL with the rotated password and required TLS settings |
+| `BETTER_AUTH_SECRET` | New production random secret of at least 32 characters |
 
-For restore, stop the API, create a separate empty target database, and restore into it without dropping tables. Keep the original database and volume intact until the restored copy has been verified. Update only `DATABASE_URL` in the ignored `.env` to point to the restored database, then run migrations and start the API. To return to the original database, restore the original URL and restart the API.
+Before enabling deployments, ensure Miget has recoverable backups. The workflow applies migrations before replacing the API container; migrations must remain compatible with the running version. To initialize a fresh VPS without installing Kamal locally, run **Actions → Application checks → Run workflow** on `main` with **first_setup** checked. Leave it unchecked on later manual runs. Subsequent successful `main` pushes run `kamal deploy` automatically. Netlify's Git integration separately publishes the frontend from `main` once its site and `API_UPSTREAM_ORIGIN` are configured. The two publishes can overlap, so paired API/frontend changes must be compatible during rollout.
 
-```sh
-docker compose --env-file .env -f compose.yml stop api
-docker compose --env-file .env -f compose.yml exec db createdb -U replens replens_restore
-docker compose --env-file .env -f compose.yml exec -T db pg_restore -U replens -d replens_restore --no-owner < "$BACKUP_DIR/REPLENS_BACKUP.dump"
-# Update DATABASE_URL to end in /replens_restore, then:
-docker compose --env-file .env -f compose.yml --profile ops run --rm migrate
-docker compose --env-file .env -f compose.yml up -d api
-```
-
-Keep backups outside the repository and VPS where possible, restrict access, and verify a restore before relying on the backup. The repository ignores the local `deploy/backups/` directory and Docker excludes backup dumps from build contexts. Real DNS/TLS, Netlify proxy and cookie behavior, physical-device access, backup recovery, and provider email delivery require checks after the user supplies the deployment details.
-
-Deployment references: [Docker official Node image](https://hub.docker.com/_/node), [Docker Compose startup order and health checks](https://docs.docker.com/compose/how-tos/startup-order/), [Docker multi-stage builds](https://docs.docker.com/build/building/multi-stage/), and [Caddy reverse proxy](https://caddyserver.com/docs/caddyfile/directives/reverse_proxy).
+The CI runner accepts the VPS SSH host key on its first connection within each run, then Kamal uses that runner's SSH configuration. No host-key secret is required. Because runners do not retain `known_hosts` between runs, this does not detect a changed VPS identity across separate deployments.
 
 ## Verification
 
@@ -188,7 +182,7 @@ DATABASE_URL="$TEST_DATABASE_URL" pnpm --filter @replens/backend db:migrate
 pnpm --filter @replens/backend test:integration
 ```
 
-Coverage: real signup and hashing, invalid input, duplicate signup, untrusted origin rejection, HttpOnly cookie, protected current-user data, session continuity across API restart, logout/revocation, expiry, no-store aliases, body limit, unavailable email actions and rate limiting. New automated history coverage is deferred; its database/API ownership, idempotency, pagination, validation and deletion behavior are checked manually on the disposable `_test` database. Expanded integration coverage for verification, reset and the Resend transport is deferred; real Resend delivery, deployment and real-device browser behavior remain unverified.
+Coverage: real signup and hashing, invalid input, duplicate signup, untrusted origin rejection, HttpOnly cookie, protected current-user data, session continuity across API restart, logout/revocation, expiry, no-store aliases, body limit, unavailable email actions and rate limiting. The account integration flow also checks legacy counter-version defaulting, accepted `world-full-v2`, rejection of unknown versions, and version-sensitive idempotency on the disposable `_test` database. History ownership, pagination, validation and deletion remain manually checked. Expanded integration coverage for verification, reset and the Resend transport is deferred; real Resend delivery, deployment and real-device browser behavior remain unverified.
 
 The CI workflow requires checks/builds/unit tests and PostgreSQL integration tests on PRs to `dev` and `main`. Prisma CLI/client/adapter stay on matching stable versions; exact Better Auth release-age exceptions are limited to the documented 1.7.11 release family. Generated Prisma source is ignored and regenerated during check/build.
 
