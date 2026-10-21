@@ -6,6 +6,8 @@ import { APIError, createAuthMiddleware } from 'better-auth/api';
 import { DatabaseService } from '../database/database.service.js';
 import type { AppConfig } from '../config/config.js';
 import { escapeHtml, ResendEmailSender } from './email-sender.js';
+import { getAccountDeletionCapabilities, isPasswordlessGoogleAccount } from './account-deletion.js';
+import { googleProviderOptions } from './google-provider.js';
 
 function isTrustedRedirect(value: unknown, frontendOrigins: string[]): boolean {
   if (typeof value !== 'string' || !value.trim()) return false;
@@ -25,7 +27,11 @@ function normalizedName(value: unknown): string {
 @Injectable()
 export class AuthService {
   readonly auth;
+  readonly googleEnabled: boolean;
+  private readonly database: DatabaseService;
   constructor(database: DatabaseService, config: AppConfig) {
+    this.database = database;
+    this.googleEnabled = Boolean(config.googleClientId && config.googleClientSecret);
     const emailSender = new ResendEmailSender(config);
     this.auth = betterAuth({
       appName: 'RepLens',
@@ -34,6 +40,11 @@ export class AuthService {
       secret: config.authSecret,
       database: prismaAdapter(database, { provider: 'postgresql' }),
       trustedOrigins: config.frontendOrigins,
+      ...(this.googleEnabled ? googleProviderOptions(config.googleClientId!, config.googleClientSecret!, config.authUrl) : {}),
+      account: {
+        encryptOAuthTokens: true,
+        accountLinking: { enabled: true, disableImplicitLinking: false, requireLocalEmailVerified: true, allowDifferentEmails: false },
+      },
       plugins: [openAPI({ disableDefaultReference: true })],
       user: {
         deleteUser: {
@@ -73,7 +84,7 @@ export class AuthService {
           });
         },
       } } : {}),
-      session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, cookieCache: { enabled: false } },
+      session: { expiresIn: 60 * 60 * 24 * 7, updateAge: 60 * 60 * 24, freshAge: 5 * 60, cookieCache: { enabled: false } },
       rateLimit: { enabled: true, window: 60, max: 30, customRules: { '/sign-up/email': { window: 60, max: 20 }, '/sign-in/email': { window: 60, max: 10 }, '/send-verification-email': { window: 60, max: 5 }, '/verify-email': { window: 60, max: 10 }, '/request-password-reset': { window: 60, max: 5 }, '/reset-password': { window: 60, max: 5 }, '/update-user': { window: 60, max: 10 }, '/delete-user': { window: 60, max: 3 } } },
       advanced: { ipAddress: { ipAddressHeaders: ['x-replens-client-ip'] }, useSecureCookies: config.production, defaultCookieAttributes: { httpOnly: true, sameSite: 'lax' } },
       hooks: { before: createAuthMiddleware(async context => {
@@ -91,8 +102,33 @@ export class AuthService {
         if (context.path === '/delete-user') {
           const body = context.body;
           const fields = body && typeof body === 'object' && !Array.isArray(body) ? Object.keys(body) : [];
-          if (fields.length !== 1 || fields[0] !== 'password' || typeof body.password !== 'string' || body.password.length === 0) {
-            throw new APIError('BAD_REQUEST', { code: 'PASSWORD_REQUIRED', message: 'Enter your current password to delete the account.' });
+          const hasPassword = fields.length === 1 && fields[0] === 'password' && typeof body.password === 'string' && body.password.length > 0;
+          const emptyBody = fields.length === 0;
+          if (!hasPassword && !emptyBody) {
+            throw new APIError('BAD_REQUEST', { code: 'INVALID_DELETE_CONFIRMATION', message: 'Use your current password or a recent Google session to delete the account.' });
+          }
+          if (emptyBody) {
+            const currentSession = context.context.session ?? (context.headers ? await this.auth.api.getSession({ headers: context.headers }) : null);
+            const userId = currentSession?.user.id;
+            const accounts = userId ? await database.account.findMany({ where: { userId }, select: { providerId: true } }) : [];
+            if (!isPasswordlessGoogleAccount(accounts)) {
+              if (accounts.some(account => account.providerId === 'credential')) {
+                throw new APIError('BAD_REQUEST', { code: 'PASSWORD_REQUIRED', message: 'Enter your current password to delete this account.' });
+              }
+              throw new APIError('FORBIDDEN', { code: 'GOOGLE_SESSION_REQUIRED', message: 'A linked Google account is required for passwordless deletion.' });
+            }
+          }
+        }
+        if (context.path === '/sign-in/social') {
+          if (!this.googleEnabled) throw new APIError('SERVICE_UNAVAILABLE', { code: 'GOOGLE_UNAVAILABLE', message: 'Google sign-in is not configured.' });
+          const body = context.body;
+          if (body?.provider !== 'google' || body?.idToken !== undefined || body?.disableRedirect !== true || body?.callbackURL === undefined) {
+            throw new APIError('BAD_REQUEST', { code: 'UNSUPPORTED_SOCIAL_SIGN_IN', message: 'Use the Google redirect sign-in flow.' });
+          }
+          for (const target of [body?.callbackURL, body?.errorCallbackURL, body?.newUserCallbackURL]) {
+            if (target !== undefined && !isTrustedRedirect(target, config.frontendOrigins)) {
+              throw new APIError('BAD_REQUEST', { code: 'INVALID_REDIRECT', message: 'Redirect URL must use an approved frontend origin.' });
+            }
           }
         }
         if (['/sign-up/email', '/send-verification-email', '/request-password-reset'].includes(context.path)) {
@@ -109,5 +145,10 @@ export class AuthService {
         }
       }) },
     });
+  }
+
+  async accountDeletionCapabilities(userId: string) {
+    const accounts = await this.database.account.findMany({ where: { userId }, select: { providerId: true } });
+    return getAccountDeletionCapabilities(accounts);
   }
 }

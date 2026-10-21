@@ -4,6 +4,8 @@
   %w[REPLENS_VPS_IP REPLENS_API_HOST REPLENS_FRONTEND_ORIGIN REPLENS_SSH_KEY].each do |key|
     raise "Set #{key} in .kamal/deploy.env" if ENV[key].to_s.empty?
   end
+  oauth_flag = ENV.fetch("REPLENS_GOOGLE_OAUTH_ENABLED", "false")
+  raise "REPLENS_GOOGLE_OAUTH_ENABLED must be true or false" unless %w[true false].include?(oauth_flag)
 %>
 service: replens-api
 image: replens-api
@@ -51,3 +53,7 @@ env:
   secret:
     - DATABASE_URL
     - BETTER_AUTH_SECRET
+<% if oauth_flag == "true" %>
+    - GOOGLE_CLIENT_ID
+    - GOOGLE_CLIENT_SECRET
+<% end %>
