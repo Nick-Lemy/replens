@@ -26,4 +26,15 @@ export class CurrentUserDto {
 export class CurrentUserResponseDto {
   @ApiProperty({ type: CurrentUserDto })
   user!: CurrentUserDto;
+
+  @ApiProperty({ type: "object", properties: { requiresPassword: { type: "boolean" }, recentSessionAllowed: { type: "boolean" } } })
+  accountDeletion!: { requiresPassword: boolean; recentSessionAllowed: boolean };
+}
+
+export class AuthProvidersResponseDto {
+  @ApiProperty({ example: true })
+  emailPasswordEnabled!: boolean;
+
+  @ApiProperty({ type: [String], enum: ["google"], example: ["google"] })
+  socialProviders!: string[];
 }

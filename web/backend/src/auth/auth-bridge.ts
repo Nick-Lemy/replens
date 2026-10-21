@@ -5,6 +5,8 @@ import type { AppConfig } from "../config/config.js";
 import type { AuthService } from "./auth.service.js";
 
 export const AUTH_BRIDGE_ROUTES = new Map<string, string>([
+  ["/api/auth/sign-in/social", "POST"],
+  ["/api/auth/callback/google", "GET"],
   ["/api/auth/sign-up/email", "POST"],
   ["/api/auth/sign-in/email", "POST"],
   ["/api/auth/sign-out", "POST"],
@@ -23,6 +25,10 @@ export function createAuthBridgeMiddleware(
 ): RequestHandler {
   return async (request: Request, response: Response, next: NextFunction) => {
     const requestPath = new URL(request.originalUrl, config.authUrl).pathname;
+    if (requestPath === "/api/auth/providers" && request.method === "GET") {
+      next();
+      return;
+    }
     if (AUTH_BRIDGE_ROUTES.get(requestPath) !== request.method) {
       response.status(404).json({
         code: "NOT_FOUND",
@@ -38,6 +44,13 @@ export function createAuthBridgeMiddleware(
       response.status(503).json({
         code: "EMAIL_UNAVAILABLE",
         message: "Email access is not configured.",
+      });
+      return;
+    }
+    if (["/api/auth/sign-in/social", "/api/auth/callback/google"].includes(requestPath) && (!config.googleClientId || !config.googleClientSecret)) {
+      response.status(503).json({
+        code: "GOOGLE_UNAVAILABLE",
+        message: "Google sign-in is not configured.",
       });
       return;
     }

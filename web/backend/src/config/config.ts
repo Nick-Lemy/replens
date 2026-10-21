@@ -15,6 +15,8 @@ export interface AppConfig {
   trustedProxyCidrs: string[];
   resendApiKey?: string;
   emailFrom?: string;
+  googleClientId?: string;
+  googleClientSecret?: string;
   trackingAssetDir: string;
 }
 
@@ -64,5 +66,8 @@ export function readConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const resendApiKey = env.RESEND_API_KEY?.trim();
   const emailFrom = env.EMAIL_FROM?.trim();
   if (Boolean(resendApiKey) !== Boolean(emailFrom)) throw new Error('RESEND_API_KEY and EMAIL_FROM must be configured together');
-  return { port, host: env.HOST ?? '127.0.0.1', production, apiDocsEnabled, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, trackingAssetDir: resolve(env.TRACKING_ASSET_DIR ?? defaultTrackingAssetDir()), ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}) };
+  const googleClientId = env.GOOGLE_CLIENT_ID?.trim();
+  const googleClientSecret = env.GOOGLE_CLIENT_SECRET?.trim();
+  if (Boolean(googleClientId) !== Boolean(googleClientSecret)) throw new Error('GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together');
+  return { port, host: env.HOST ?? '127.0.0.1', production, apiDocsEnabled, databaseUrl: env.DATABASE_URL, authSecret: env.BETTER_AUTH_SECRET, authUrl, frontendOrigins, trustedProxyCidrs, trackingAssetDir: resolve(env.TRACKING_ASSET_DIR ?? defaultTrackingAssetDir()), ...(resendApiKey && emailFrom ? { resendApiKey, emailFrom } : {}), ...(googleClientId && googleClientSecret ? { googleClientId, googleClientSecret } : {}) };
 }

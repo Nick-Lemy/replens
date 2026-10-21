@@ -86,6 +86,15 @@ function mergeBetterAuthSchema(
       } else if (path === "/api/auth/verify-email") {
         operation.description =
           `${operation.description ?? ""} Verification links expire after one hour. Confirm with the user before consuming a token.`.trim();
+      } else if (path === "/api/auth/sign-in/social") {
+        operation.description =
+          `${operation.description ?? ""} RepLens supports only Google's browser redirect flow. Set provider to "google", disableRedirect to true to receive a URL for browser navigation, and use an approved frontend callbackURL. Client-supplied ID tokens are rejected. Google routes return 503 when the paired server credentials are absent.`.trim();
+        if (!config.googleClientId || !config.googleClientSecret) {
+          operation.responses = {
+            ...operation.responses,
+            "503": { description: "Google OAuth is not configured." },
+          };
+        }
       }
     }
     document.paths[path] = { ...document.paths[path], ...pathItem };
