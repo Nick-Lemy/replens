@@ -4,7 +4,7 @@ RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates openssl \
   && rm -rf /var/lib/apt/lists/*
 
-FROM base AS workspace
+FROM base AS backend-dependencies
 
 WORKDIR /workspace
 RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
@@ -13,8 +13,9 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY .husky/install.mjs .husky/install.mjs
 COPY web/backend/package.json web/backend/package.json
 COPY web/frontend/package.json web/frontend/package.json
-RUN CI=true pnpm install --frozen-lockfile
+RUN CI=true pnpm install --frozen-lockfile --filter @replens/backend...
 
+FROM backend-dependencies AS workspace
 COPY web/backend web/backend
 RUN CI=true pnpm --filter @replens/backend build
 
@@ -24,18 +25,12 @@ COPY web/backend/scripts/prepare-tracking-assets.mjs web/backend/scripts/prepare
 RUN node web/backend/scripts/prepare-tracking-assets.mjs
 
 # This image is run explicitly by the operator to apply migrations.
-FROM base AS migration
-WORKDIR /workspace
-RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY .husky/install.mjs .husky/install.mjs
-COPY web/backend/package.json web/backend/package.json
-COPY web/frontend/package.json web/frontend/package.json
-RUN CI=true pnpm install --frozen-lockfile --filter @replens/backend...
-COPY web/backend/prisma.config.ts web/backend/prisma.config.ts
-COPY web/backend/prisma web/backend/prisma
+FROM backend-dependencies AS migration
+WORKDIR /workspace/web/backend
+COPY web/backend/prisma.config.ts ./prisma.config.ts
+COPY web/backend/prisma ./prisma
 ENV NODE_ENV=production
-CMD ["pnpm", "--filter", "@replens/backend", "db:migrate"]
+CMD ["./node_modules/.bin/prisma", "migrate", "deploy"]
 
 # Keep the API image to production dependencies plus the compiled server.
 FROM base AS production-dependencies

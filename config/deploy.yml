@@ -7,6 +7,7 @@
 %>
 service: replens-api
 image: replens-api
+deploy_timeout: 90
 
 servers:
   web:
@@ -27,6 +28,11 @@ builder:
   context: .
   dockerfile: web/backend/Dockerfile
   target: api
+<% if !ENV.fetch("ACTIONS_RUNTIME_TOKEN", "").empty? && (!ENV.fetch("ACTIONS_RESULTS_URL", "").empty? || !ENV.fetch("ACTIONS_CACHE_URL", "").empty?) %>
+  cache:
+    type: gha
+    options: version=2,mode=max,scope=replens-backend-<%= ENV.fetch("REPLENS_VPS_ARCH", "amd64") %>
+<% end %>
 
 ssh:
   user: <%= ENV.fetch("REPLENS_SSH_USER", "root") %>
