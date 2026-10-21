@@ -4,6 +4,12 @@ on:
     branches: [dev, main]
   push:
     branches: [dev, main]
+  workflow_dispatch:
+    inputs:
+      first_setup:
+        description: Set up a fresh VPS with Kamal before the first deployment
+        type: boolean
+        default: false
 permissions:
   contents: read
 jobs:
@@ -40,3 +46,73 @@ jobs:
       - run: pnpm --filter @replens/backend test:integration
       - run: pnpm --filter @replens/frontend exec playwright install --with-deps chromium
       - run: pnpm --filter @replens/frontend test:e2e
+
+  deploy:
+    if: github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    needs: verify
+    runs-on: ubuntu-latest
+    concurrency:
+      group: replens-production-backend
+      cancel-in-progress: false
+    env:
+      REPLENS_VPS_IP: ${{ vars.REPLENS_VPS_IP }}
+      REPLENS_API_HOST: ${{ vars.REPLENS_API_HOST }}
+      REPLENS_FRONTEND_ORIGIN: ${{ vars.REPLENS_FRONTEND_ORIGIN }}
+      REPLENS_SSH_USER: ${{ vars.REPLENS_SSH_USER || 'root' }}
+      REPLENS_VPS_ARCH: ${{ vars.REPLENS_VPS_ARCH || 'amd64' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.4'
+      - name: Install Kamal
+        run: gem install kamal -v 2.12.0 --no-document
+      - name: Prepare deployment credentials
+        shell: bash
+        env:
+          DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+        run: |
+          set -euo pipefail
+          for name in REPLENS_VPS_IP REPLENS_API_HOST REPLENS_FRONTEND_ORIGIN DEPLOY_SSH_PRIVATE_KEY DATABASE_URL BETTER_AUTH_SECRET; do
+            if [[ -z "${!name}" ]]; then
+              echo "Missing production variable or secret: $name" >&2
+              exit 1
+            fi
+          done
+          umask 077
+          mkdir -p "$HOME/.ssh"
+          key_path="$HOME/.ssh/replens-deploy-key"
+          printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$key_path"
+          printf 'REPLENS_SSH_KEY=%s\n' "$key_path" >> "$GITHUB_ENV"
+          printf '%s\n' "DATABASE_URL=\$DATABASE_URL" "BETTER_AUTH_SECRET=\$BETTER_AUTH_SECRET" > .kamal/secrets
+      - name: Verify Kamal configuration and SSH
+        shell: bash
+        run: |
+          set -euo pipefail
+          kamal config
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -i "$REPLENS_SSH_KEY" "$REPLENS_SSH_USER@$REPLENS_VPS_IP" true
+      - name: Apply pending database migrations
+        shell: bash
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          set -euo pipefail
+          docker build --target migration -f web/backend/Dockerfile -t "replens-migration:$GITHUB_SHA" .
+          docker run --rm -e DATABASE_URL "replens-migration:$GITHUB_SHA"
+      - name: Set up fresh VPS
+        if: github.event_name == 'workflow_dispatch' && inputs.first_setup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+        run: kamal setup
+      - name: Deploy backend
+        if: github.event_name == 'push' || !inputs.first_setup
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+        run: kamal deploy
+      - name: Verify public API
+        shell: bash
+        run: curl --fail --show-error --silent --max-time 20 --retry 5 --retry-delay 3 "https://${REPLENS_API_HOST}/api/health"

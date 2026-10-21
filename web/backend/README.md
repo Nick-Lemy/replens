@@ -138,6 +138,33 @@ For email verification and reset, add both `RESEND_API_KEY` and `EMAIL_FROM` to 
 
 Kamal's image rollback does not reverse database migrations. Back up Miget before schema changes and check old/new schema compatibility. Public DNS, TLS, Netlify cookie behavior, Miget access from the VPS, email delivery, and real-phone performance remain unverified until you supply hosting details and deploy.
 
+### Automatic deployment from `main`
+
+The `deploy` job in `.github/workflows/checks.yml` runs after the existing checks pass on a push to `main`. It verifies SSH, applies pending Prisma migrations from the committed migration files, deploys with Kamal, and checks the public health URL. A failed check or migration stops deployment. Pull requests and pushes to `dev` do not deploy. The job is disabled until the repository variable `DEPLOY_ENABLED` is set to `true`. It uses repository secrets so this private repository does not depend on a paid GitHub environment feature.
+
+Set these GitHub Actions **variables** in repository Settings → Secrets and variables → Actions:
+
+| Variable | Value |
+| --- | --- |
+| `DEPLOY_ENABLED` | `true` after the VPS, DNS, backup policy and credentials are ready |
+| `REPLENS_VPS_IP` | VPS public IP |
+| `REPLENS_API_HOST` | API hostname without `https://` |
+| `REPLENS_FRONTEND_ORIGIN` | Exact HTTPS Netlify frontend origin |
+| `REPLENS_SSH_USER` | SSH user; defaults to `root` |
+| `REPLENS_VPS_ARCH` | `amd64` or `arm64`; defaults to `amd64` |
+
+Set these **repository secrets** in the same Actions settings page:
+
+| Secret | Value |
+| --- | --- |
+| `DEPLOY_SSH_PRIVATE_KEY` | Private key for an SSH account authorized on this VPS; never paste it into chat or Git |
+| `DATABASE_URL` | Miget's external PostgreSQL URL with the rotated password and required TLS settings |
+| `BETTER_AUTH_SECRET` | New production random secret of at least 32 characters |
+
+Before enabling deployments, ensure Miget has recoverable backups. The workflow applies migrations before replacing the API container; migrations must remain compatible with the running version. To initialize a fresh VPS without installing Kamal locally, run **Actions → Application checks → Run workflow** on `main` with **first_setup** checked. Leave it unchecked on later manual runs. Subsequent successful `main` pushes run `kamal deploy` automatically. Netlify's Git integration separately publishes the frontend from `main` once its site and `API_UPSTREAM_ORIGIN` are configured. The two publishes can overlap, so paired API/frontend changes must be compatible during rollout.
+
+The CI runner accepts the VPS SSH host key on its first connection within each run, then Kamal uses that runner's SSH configuration. No host-key secret is required. Because runners do not retain `known_hosts` between runs, this does not detect a changed VPS identity across separate deployments.
+
 ## Verification
 
 ```sh

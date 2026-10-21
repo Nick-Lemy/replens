@@ -136,6 +136,8 @@ The backend uses [Kamal](web/backend/README.md#backend-deployment-with-kamal) on
 4. On Netlify, set `API_UPSTREAM_ORIGIN=https://<your API hostname>` and deploy the frontend. The generated same-origin `/api/*` route forwards calls to the VPS.
 5. Check `https://<API hostname>/api/health` and then test accounts, history, guides and live counting through the public Netlify URL on a real phone. Health alone does not prove the database works.
 
+For automatic releases, configure the GitHub Actions variables and `production` secrets in the [backend deployment guide](web/backend/README.md#automatic-deployment-from-main). Enable `DEPLOY_ENABLED` after the VPS, DNS and Miget backups are ready. Run the manual **first_setup** workflow once; later successful pushes to `main` deploy the backend automatically after CI. Netlify deploys the frontend separately through its Git connection.
+
 Set both Resend values later if you want real verification/reset emails. Production Swagger is off unless you explicitly enable `API_DOCS_ENABLED` in the Kamal config. See the backend runbook for those settings and deployment limits.
 
 ## 4. What live RIR still needs
