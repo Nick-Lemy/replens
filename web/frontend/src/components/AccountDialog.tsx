@@ -7,7 +7,7 @@ import { Icon } from "./Icon";
 export function AccountDialog({ close, returnFocus }: { close: () => void; returnFocus: HTMLElement | null }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
-  const { authenticate, pending, error } = useAuth();
+  const { authenticate, authenticateGoogle, googleAvailable, googlePending, providerLoadFailed, pending, error } = useAuth();
   const [attempted, setAttempted] = useState(false);
   const [resetMessage, setResetMessage] = useState("");
   const resetMutation = useMutation({ mutationFn: requestPasswordReset, gcTime: 0 });
@@ -21,22 +21,23 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
     <dialog
       ref={ref}
       className="fixed inset-0 m-auto py-[35px] px-6.5 bg-surface text-foreground border border-line rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
-      onCancel={close}
+      onCancel={(event) => { if (pending || googlePending) event.preventDefault(); else close(); }}
       onClick={(event) => {
         const rect = ref.current?.getBoundingClientRect();
-        if (
+        if (!pending && !googlePending && (
           rect &&
           (event.clientX < rect.left ||
             event.clientX > rect.right ||
             event.clientY < rect.top ||
             event.clientY > rect.bottom)
-        )
+        ))
           close();
       }}
       aria-labelledby="account-title"
     >
       <button
         className="size-11 inline-flex items-center justify-center bg-control border border-line rounded-full absolute right-5 top-5"
+        disabled={pending || googlePending}
         aria-label="Close account form"
         onClick={close}
       >
@@ -53,6 +54,19 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
       <p className="text-muted text-sm leading-[1.75] mt-3">
         {mode === "forgot" ? "Enter your account email to request a reset link." : "Create an account or sign in to RepLens."}
       </p>
+      {mode !== "forgot" && googleAvailable && <>
+        <button
+          type="button"
+          disabled={pending || googlePending}
+          className="mt-6 flex items-center justify-center gap-3 min-h-12 rounded-xl px-4 text-sm font-medium w-full bg-white text-[#1f1f1f] border border-[#747775] disabled:opacity-60"
+          onClick={async () => { setAttempted(true); await authenticateGoogle("current"); }}
+        >
+          <img src="/google-signin-icon.svg" alt="" className="size-10" />
+          {googlePending ? "Connecting…" : "Continue with Google"}
+        </button>
+        <div className="mt-4 flex items-center gap-3 text-[11px] text-muted" aria-hidden="true"><span className="h-px bg-line flex-1" />or continue with email<span className="h-px bg-line flex-1" /></div>
+      </>}
+      {mode !== "forgot" && providerLoadFailed && <p role="status" className="mt-4 text-xs leading-[1.7] text-muted">Google sign-in options could not be loaded. You can still use email.</p>}
       {mode === "forgot" ? <form className="mt-6 grid gap-4" onSubmit={async (event) => {
         event.preventDefault();
         if (resetPending) return;

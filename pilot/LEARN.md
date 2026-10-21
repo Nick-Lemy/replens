@@ -260,6 +260,10 @@ An **idempotent save** prevents duplicate entries when a connection fails. Each 
 
 A database **cascade** removes related records automatically. Deleting a RepLens account also deletes its saved workout summaries. These personal records remain separate from consented study videos and participant labels.
 
+## Google account sign-in
+
+The account form asks the backend which sign-in providers are configured; it shows Google only when the API reports it available. Google confirms identity through an OAuth redirect. Better Auth checks the short-lived state cookie to match the return to the sign-in request, then creates the RepLens session cookie. The browser receives no Google ID token, and the Google client secret stays on the backend. Deleting a Google-only account requires a recent Google session and a separate final confirmation. Real Google sign-in remains pending client credentials and browser verification with those credentials.
+
 ## Training folder scaffold
 
 `training/` now separates data preparation, feature calculations, model training, evaluation and ONNX export. A **scaffold** is an empty starting structure, not a working model. Experiment settings belong in `configs/`; optional notebooks belong in `notebooks/`. Local research tables in `training/data/` and generated results in `training/artifacts/` are ignored by Git. The six available videos can support an initial experiment, but participant-held-out testing still requires different people for training and testing, and exact RIR requires valid endpoint evidence.

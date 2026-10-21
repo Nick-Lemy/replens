@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { queryOptions, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { clearPrivateQueries } from "../api/queryClient";
-import { currentUser, endAccountSession, submitAccount, type AccountUser } from "./api";
+import { beginGoogleSignIn, currentUser, endAccountSession, getAuthProviderAvailability, submitAccount, type AccountUser } from "./api";
 
 type Status = "loading" | "guest" | "authenticated" | "unavailable";
 interface AuthContextValue {
@@ -9,6 +9,10 @@ interface AuthContextValue {
   status: Status;
   pending: boolean;
   error: string;
+  googleAvailable: boolean;
+  googlePending: boolean;
+  providerLoadFailed: boolean;
+  authenticateGoogle: (returnTo?: "current" | "confirm-delete") => Promise<boolean>;
   refresh: () => Promise<void>;
   authenticate: (mode: "signin" | "signup", details: { name?: string; email: string; password: string }) => Promise<boolean>;
   signOut: () => Promise<void>;
@@ -24,13 +28,22 @@ const sessionOptions = queryOptions({
   refetchOnWindowFocus: true,
   refetchOnReconnect: true,
 });
+const providerOptions = queryOptions({
+  queryKey: ["auth", "providers"],
+  queryFn: ({ signal }) => getAuthProviderAvailability(signal),
+  staleTime: 60_000,
+  retry: 1,
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [actionError, setActionError] = useState("");
   const [signOutFailed, setSignOutFailed] = useState(false);
+  const [googleNavigationPending, setGoogleNavigationPending] = useState(false);
+  const googleNavigationRef = useRef(false);
   const previousUserId = useRef<string | null>(null);
   const session = useQuery(sessionOptions);
+  const providers = useQuery(providerOptions);
   const authentication = useMutation({
     mutationFn: async ({ mode, details }: { mode: "signin" | "signup"; details: { name?: string; email: string; password: string } }) => {
       await queryClient.cancelQueries({ queryKey: sessionKey, exact: true });
@@ -48,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     mutationFn: endAccountSession,
     gcTime: 0,
   });
+  const googleMutation = useMutation({ mutationFn: ({ callbackURL, errorCallbackURL }: { callbackURL: string; errorCallbackURL: string }) => beginGoogleSignIn(callbackURL, errorCallbackURL), gcTime: 0 });
 
   const cachedUser = session.data ?? null;
   const user = session.isError || signOutFailed ? null : cachedUser;
@@ -79,7 +93,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [queryClient]);
 
   const authenticate: AuthContextValue["authenticate"] = async (mode, details) => {
-    if (authentication.isPending || signOutMutation.isPending) return false;
+    if (authentication.isPending || signOutMutation.isPending || googleNavigationRef.current) return false;
     setActionError("");
     setSignOutFailed(false);
     authentication.reset();
@@ -95,8 +109,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const authenticateGoogle: AuthContextValue["authenticateGoogle"] = async (returnTo = "current") => {
+    if (!providers.data?.socialProviders.includes("google") || googleMutation.isPending || authentication.isPending || signOutMutation.isPending || googleNavigationRef.current) return false;
+    googleNavigationRef.current = true;
+    setGoogleNavigationPending(true);
+    setActionError("");
+    const currentRoute = window.location.hash.slice(1).split(/[/?]/)[0];
+    const safeRoute = ["home", "guide", "live", "history", "profile"].includes(currentRoute) ? currentRoute : "home";
+    const callbackURL = new URL(window.location.pathname, window.location.origin);
+    callbackURL.hash = returnTo === "confirm-delete" ? "profile?confirm-delete=1" : safeRoute;
+    const errorURL = new URL(callbackURL.href);
+    errorURL.hash = `${returnTo === "confirm-delete" ? "profile?" : safeRoute + "?"}google-auth-error=1`;
+    try {
+      const target = await googleMutation.mutateAsync({ callbackURL: callbackURL.href, errorCallbackURL: errorURL.href });
+      window.location.assign(target);
+      return true;
+    } catch (failure) {
+      googleNavigationRef.current = false;
+      setGoogleNavigationPending(false);
+      setActionError(failure instanceof Error ? failure.message : fallbackError);
+      googleMutation.reset();
+      return false;
+    }
+  };
+
   const signOut = async () => {
-    if (authentication.isPending || signOutMutation.isPending) return;
+    if (authentication.isPending || signOutMutation.isPending || googleNavigationRef.current) return;
     signOutMutation.reset();
     const previous = user?.id;
     try {
@@ -117,9 +155,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const pending = authentication.isPending || signOutMutation.isPending;
+  const pending = authentication.isPending || signOutMutation.isPending || googleMutation.isPending || googleNavigationPending;
   return (
-    <AuthContext.Provider value={{ user, status, pending, error, refresh, authenticate, signOut }}>
+    <AuthContext.Provider value={{ user, status, pending, error, refresh, authenticate, signOut, googleAvailable: providers.data?.socialProviders.includes("google") ?? false, googlePending: googleMutation.isPending || googleNavigationPending, providerLoadFailed: providers.isError, authenticateGoogle }}>
       {children}
     </AuthContext.Provider>
   );

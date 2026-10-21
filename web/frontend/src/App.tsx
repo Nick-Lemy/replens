@@ -10,6 +10,7 @@ import { useAuth } from "./features/auth/AuthProvider";
 import { useInstall } from "./hooks/useInstall";
 import { EmailAccessLink } from "./pages/EmailAccessLink";
 import { useTheme } from "./features/theme/ThemeProvider";
+import { consumeGoogleAuthNotice } from "./features/auth/googleCallback";
 
 const navigation: { id: string; label: string; icon: IconName }[] = [
   { id: "home", label: "Home", icon: "home" },
@@ -30,6 +31,7 @@ function consumeRoute(rawHash: string): { route: Route; token: string } {
   return { route: navigation.some((item) => item.id === route) ? route as Route : "home", token: "" };
 }
 const initialLink = consumeRoute(window.location.hash);
+const initialGoogleNotice = consumeGoogleAuthNotice();
 function readPreferences(): Preferences {
   try {
     const value = JSON.parse(
@@ -53,6 +55,7 @@ export function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [preferences, setPreferences] = useState(readPreferences);
   const [offline, setOffline] = useState(!navigator.onLine);
+  const [googleNotice, setGoogleNotice] = useState(initialGoogleNotice);
   const installer = useInstall();
   const { user, status, error, refresh } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -60,6 +63,7 @@ export function App() {
   useEffect(() => {
     const changed = () => {
       const next = consumeRoute(window.location.hash);
+      setGoogleNotice(consumeGoogleAuthNotice());
       setRoute(next.route);
       setLinkToken(next.token);
       setAccountOpen(false);
@@ -172,6 +176,10 @@ export function App() {
             You’re offline. Reconnect to load exercise guides, saved history or tracking files.
           </div>
         )}
+        {googleNotice && <div role="status" className="flex items-start justify-between gap-3 py-3 px-5 text-xs text-secondary bg-accent-soft">
+          <span>{googleNotice}</span>
+          <button type="button" className="min-h-8 px-2 underline underline-offset-4" onClick={() => setGoogleNotice("")}>Dismiss</button>
+        </div>}
         {status === "unavailable" && (
           <div role="status" className="flex flex-wrap items-center gap-3 py-3 px-5 text-xs text-accent">
             <span>{error}</span>
