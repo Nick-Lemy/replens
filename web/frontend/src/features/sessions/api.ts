@@ -16,6 +16,7 @@ export interface WorkoutSession {
 
 export interface WorkoutSessionDraft {
   clientId: string;
+  counterVersion: "world-full-v2";
   startedAt: string;
   endedAt: string;
   completedReps: number;
@@ -40,7 +41,7 @@ function isWorkoutSession(value: unknown): value is WorkoutSession {
   return typeof item.id === "string"
     && item.id.length > 0
     && item.exerciseId === "two-arm-dumbbell-curl"
-    && item.counterVersion === "world-full-v1"
+    && (item.counterVersion === "world-full-v1" || item.counterVersion === "world-full-v2")
     && isIsoDateTime(item.startedAt)
     && isIsoDateTime(item.endedAt)
     && Date.parse(item.endedAt) > Date.parse(item.startedAt)
