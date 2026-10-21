@@ -34,7 +34,7 @@ Edit `web/backend/.env`. Keep secrets there, outside Git and chat.
 | `BETTER_AUTH_SECRET` | Generate a unique secret, for example with `openssl rand -hex 32`, and copy it into this field. |
 | `PORT` / `HOST` | Default backend: `3000` / `127.0.0.1`. |
 | `BETTER_AUTH_URL` | `http://localhost:3000` for the default direct local backend. |
-| `FRONTEND_ORIGINS` | `http://localhost:5173`. Use the exact frontend origin, without a trailing slash. |
+| `FRONTEND_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` allows both local frontend addresses. Origins must match exactly, without trailing slashes. |
 | `API_DOCS_ENABLED` | `true` to enable Swagger locally. |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Optional initially. Leave both blank if you have not configured Resend. |
 
@@ -62,6 +62,8 @@ Open:
 | Swagger directly on the backend | http://localhost:3000/api/docs |
 | OpenAPI JSON | http://localhost:3000/api/docs-json |
 | Health check | http://localhost:3000/api/health |
+
+If Better Auth reports `Invalid origin`, check that the address used in the browser is included in `FRONTEND_ORIGINS`, then restart the backend after editing `.env`. `localhost` and `127.0.0.1` are different origins.
 
 Use your configured backend port if you changed it. OpenAPI is the machine-readable description of the API; Swagger UI is the interactive page that displays it.
 
