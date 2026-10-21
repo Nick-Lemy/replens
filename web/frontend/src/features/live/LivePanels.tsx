@@ -41,9 +41,13 @@ export function TrackingDiagnostics({
 export function LiveMetrics({
   count,
   tracking,
+  demoEnabled,
+  demoValue,
 }: {
   count: number | string;
   tracking: string;
+  demoEnabled: boolean;
+  demoValue: number | null;
 }) {
   return (
     <div className="grid grid-cols-[1fr_1fr_1.2fr] gap-2.5 mt-4">
@@ -52,14 +56,60 @@ export function LiveMetrics({
         <strong className="block text-[30px] font-normal mt-1">{count}</strong>
       </div>
       <div className="py-4.25 px-3 bg-surface rounded-[13px]">
-        <span className="block text-[9px] text-muted min-h-6">Estimated reps left</span>
-        <strong className="block text-[30px] font-normal mt-1">—</strong>
+        <span className="block text-[9px] text-muted min-h-6">{demoEnabled ? "Demo reps left" : "Estimated reps left"}</span>
+        <strong className="block text-[18px] font-normal mt-2 leading-[1.5]">
+          {!demoEnabled || demoValue === null
+            ? "—"
+            : demoValue < 0
+              ? "Outside demo range"
+              : demoValue.toFixed(1)}
+        </strong>
       </div>
       <div className="py-4.25 px-3 bg-surface rounded-[13px]">
         <span className="block text-[9px] text-muted min-h-6">Tracking</span>
         <strong className="block text-xs font-normal mt-1 leading-[1.6]">{tracking}</strong>
       </div>
     </div>
+  );
+}
+
+export function ExperimentalRirPanel({
+  enabled,
+  onEnabledChange,
+  status,
+  value,
+  error,
+  notice,
+}: {
+  enabled: boolean;
+  onEnabledChange: (enabled: boolean) => void;
+  status: "off" | "loading" | "ready" | "error";
+  value: number | null;
+  error: string;
+  notice: string;
+}) {
+  return (
+    <section className="bg-surface border border-line rounded-[20px] p-5">
+      <h2 className="font-medium text-base">Synthetic model — not validated</h2>
+      <label className="mt-3 flex min-h-11 items-center gap-3 text-xs text-secondary">
+        <input type="checkbox" checked={enabled} onChange={(event) => onEnabledChange(event.target.checked)} />
+        Try experimental speed-only preview
+      </label>
+      {enabled && (
+        <div className="mt-3 text-xs leading-[1.7] text-muted" aria-live="polite">
+          <p>Demo only; not exercise advice.</p>
+          {status === "loading" && <p className="mt-2">Preparing synthetic preview…</p>}
+          {status === "error" && <p className="mt-2 text-secondary" role="status">Preview unavailable: {error}</p>}
+          {status === "ready" && value === null && <p className="mt-2">A value appears only after a completed curl.</p>}
+          <details className="mt-2 rounded-lg border border-line px-3 py-2">
+            <summary className="cursor-pointer select-none">Model details</summary>
+            <p className="mt-2">{notice || "Synthetic software check only; not research evidence or a deployable model."}</p>
+            {status === "ready" && value !== null && <p className="mt-2">Raw model output: {value.toFixed(4)}</p>}
+            <p className="mt-2">This preview uses live estimated world-angle speed features. They have not been validated as equivalent to the pilot pipeline.</p>
+          </details>
+        </div>
+      )}
+    </section>
   );
 }
 

@@ -15,7 +15,7 @@ docs/     Project proposal
 
 The current prototype is in [pilot/README.md](pilot/README.md). It counts curls and extracts movement measurements; it does not have a trained RIR predictor. Volunteer recording requires ALU ethics approval, gym permission, and individual consent.
 
-[web/README.md](web/README.md) explains the application. [training/README.md](training/README.md) explains how we will train and compare the RIR models. Training currently contains documentation only.
+[web/README.md](web/README.md) explains the application. [training/README.md](training/README.md) explains the isolated synthetic training experiment and planned real-data comparison. The synthetic experiment checks training and ONNX export; it is not a validated RIR predictor.
 
 Local model files, videos, set CSVs, and the Python environment are excluded from version control. Keep the participant code-to-name list separately in approved storage.
 
@@ -33,7 +33,7 @@ Follow [backend local setup](web/backend/README.md#local-setup) to create the ig
 
 Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
-The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and browser-local live curl counting with arm landmarks. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Users can explicitly save live-count summaries, view private history and delete entries. Only counts and timing are stored; videos, landmarks and RIR are excluded. RIR inference is not implemented yet. Apply the committed database migrations before using saved history. The live counter uses estimated 3D joints and conservative movement rules; it is not a validated accuracy benchmark. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
+The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and browser-local live curl counting with arm landmarks. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Users can explicitly save live-count summaries, view private history and delete entries. Only counts and timing are stored; videos, landmarks and RIR are excluded. An optional synthetic speed-only RIR preview demonstrates browser inference; it is not validated feedback or a study result. Apply the committed database migrations before using saved history. The live counter uses estimated 3D joints and conservative movement rules; it is not a validated accuracy benchmark. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
 
 ## Git checks and commit messages
 

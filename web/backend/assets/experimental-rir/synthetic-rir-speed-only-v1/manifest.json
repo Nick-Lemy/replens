@@ -1,0 +1,30 @@
+{
+  "synthetic": true,
+  "deploymentApproved": false,
+  "version": "synthetic-rir-speed-only-v1",
+  "filename": "model.onnx",
+  "sha256": "7c734ec947b86df655635a9bca5058801fb7c63fedf9049eb3a82caf6bdbb627",
+  "inputName": "features",
+  "inputDtype": "float32",
+  "inputShape": [null, 2],
+  "featureOrder": [
+    "mean_up_speed_deg_s",
+    "peak_up_speed_deg_s"
+  ],
+  "featureDefinitionVersion": "synthetic-pilot-angular-v1",
+  "preprocessing": "StandardScaler included in ONNX; do not scale twice",
+  "output": "raw continuous RIR estimate; not rounded or clamped",
+  "notice": "SYNTHETIC ONLY: software check, not research evidence or a deployable RIR model.",
+  "provenance": {
+    "dataSource": "synthetic",
+    "runId": "20261021T155611102710Z",
+    "sourceArtifact": "training/artifacts/synthetic/20261021T155611102710Z/models/speed_only.onnx",
+    "sourceArtifactSha256": "7c734ec947b86df655635a9bca5058801fb7c63fedf9049eb3a82caf6bdbb627",
+    "sourceDatasetSha256": "9af7918cd4454365f0e2791b361fc4b06369d40981c5cae3e8d08a00c2c218d5",
+    "participants": 12,
+    "trainParticipants": 9,
+    "testParticipants": 3,
+    "trainRepRows": 204,
+    "testRepRows": 64
+  }
+}

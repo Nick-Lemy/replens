@@ -2,7 +2,9 @@
 
 ## What works now
 
-Accounts, educational exercise guides, live two-arm curl counting, and explicitly saved personal summaries are implemented. Swagger documents the existing API. The live page does **not** predict reps left yet. Downloading the MediaPipe pose model enables joint tracking; it does not add an RIR model.
+Accounts, educational exercise guides, live two-arm curl counting, and explicitly saved personal summaries are implemented. Swagger documents the existing API. The live page also offers a default-off **synthetic RIR preview**. It demonstrates browser inference after completed curls; its estimates are not validated exercise feedback.
+
+To try it, start the backend and frontend normally, open **Live session**, enable the camera and select **Try experimental speed-only preview**. Start a live session and complete a curl. **Demo reps left** shows the synthetic model's output from measured angular speeds. The backend includes the small versioned model; the frontend bundles the pinned WASM runtime. Saved summaries contain counts and timing only. Real-data training and evaluation are still required before normal RIR feedback.
 
 The frontend uses TanStack Query to manage API loading, errors and an in-memory cache. It needs no separate hosted service or account; `pnpm install` installs it with the app.
 
@@ -147,14 +149,14 @@ Set both Resend values later if you want real verification/reset emails. Product
 | Missing piece | What must be done |
 | --- | --- |
 | Suitable study data and labels | Finish consented collection and review completed reps and documented set endpoints. A clip ending or a voluntary stop does not establish exact RIR. Keep research records separate from personal app history. |
-| A matching feature extractor | Implement the speed and candidate movement-instability measurements used for training in the live browser path. Use the same landmarks, timestamps, smoothing, units and rep boundaries. The browser counter currently uses estimated 3D joints; the Python pilot's image-plane measurements are not automatically interchangeable. |
-| Trained and compared models | Train matched speed-only and speed-plus-instability models, then test both on people excluded from training. Measure error; do not assume instability improves it. The `training/` pipeline is not implemented yet. |
+| A matching feature extractor | Validate the speed and candidate movement-instability measurements used for real training against the live browser path. Use the same landmarks, timestamps, smoothing, units and rep boundaries. The demo uses estimated 3D joint angles; the Python pilot's image-plane measurements are not automatically interchangeable. |
+| Trained and compared models | Train matched speed-only and speed-plus-instability models on reviewed study data, then test both on people excluded from training. Measure error; do not assume instability improves it. The `training/` pipeline currently runs an isolated synthetic experiment only. |
 | A deployment package | Export the evaluated model to ONNX with its feature order, preprocessing/scaler, supported exercise, version and operating limits. Check that exported predictions match the original model. |
-| Browser inference code | Add an ONNX Runtime Web loader and worker inference after each completed rep. The current worker tracks pose/counts; it has no RIR feature pipeline or trained predictor. Host versioned files on the VPS and preserve the download/privacy boundaries. |
+| Evaluated model integration | The opt-in demo already uses an ONNX Runtime Web worker after completed reps. A real-data model still needs a new verified version, matching features, preprocessing and operating limits before becoming usable feedback. Preserve same-origin assets, stale-result handling and privacy boundaries. |
 | Reliable feedback and validation | Handle missing landmarks, interrupted sets, bad inputs and unsupported views honestly. Test prediction quality, download time and response delay on real phones before showing estimates as usable feedback. |
 
 **Inference** means running a trained model on a new input. **ONNX** is a model-file format; it does not train a model or improve its accuracy by itself. **Preprocessing** is the exact preparation of inputs before prediction. It must match training.
 
 Only information available through the current completed rep can enter a live prediction. A training label may use a later verified endpoint, but a live feature must not reveal future reps. No RIR value should be fabricated while these stages are missing.
 
-The immediate web app can therefore be used for guides, accounts, rep counting and personal summaries while the research/model work is completed later. It currently has no trained RIR predictor, no validated muscle-tremor measurement and no demonstrated injury-reduction outcome.
+The web app can be used for guides, accounts, rep counting and personal summaries, plus the explicitly labeled synthetic preview. It currently has no RIR predictor trained on reviewed study data, no validated muscle-tremor measurement and no demonstrated injury-reduction outcome.
