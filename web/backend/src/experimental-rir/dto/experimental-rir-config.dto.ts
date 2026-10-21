@@ -26,6 +26,8 @@ export class ExperimentalRirConfigDto {
   @ApiProperty({
     type: [String],
     example: ["mean_up_speed_deg_s", "peak_up_speed_deg_s"],
+    description:
+      "The selected bundle's ordered inputs. The speed-movement bundle adds movement_instability as the third input.",
   })
   featureOrder!: string[];
 

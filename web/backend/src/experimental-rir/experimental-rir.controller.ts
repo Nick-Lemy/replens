@@ -65,9 +65,9 @@ export class ExperimentalRirController {
 
   @Get("assets/:version/:filename")
   @ApiOperation({
-    summary: "Download the fixed synthetic speed-only ONNX asset",
+    summary: "Download a fixed synthetic RIR ONNX asset",
     description:
-      "Serves one bundled, hash-verified model version. No client-provided path or remote URL is read.",
+      "Serves either allowlisted synthetic model bundle after hash verification. No client-provided filesystem path or remote URL is read.",
   })
   @ApiParam({
     name: "version",
