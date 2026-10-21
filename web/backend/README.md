@@ -91,9 +91,14 @@ The config response is `no-store`. Asset URLs include both runtime and model ver
 
 ## Experimental synthetic RIR demo
 
-`GET /api/experimental-rir/config` returns a no-store contract for one fixed speed-only ONNX model trained only on generated synthetic rows. It marks `synthetic: true` and `deploymentApproved: false`, includes the exact SHA-256 and ordered inputs (`mean_up_speed_deg_s`, `peak_up_speed_deg_s`), and identifies the synthetic feature definition. `GET /api/experimental-rir/assets/:version/model.onnx` serves only that versioned, hash-verified file with immutable caching; other versions or filenames return 404. Missing, changed, or invalid bundle metadata returns 503.
+`GET /api/experimental-rir/config` preserves the speed-only no-store contract. `GET /api/experimental-rir/config/speed-movement` explicitly selects the second model; `/config/speed-only` is also available, and unsupported model names return 400. Both responses mark `synthetic: true` and `deploymentApproved: false`, and include the exact version, SHA-256, feature order and feature-definition version. Speed-only inputs are `mean_up_speed_deg_s` and `peak_up_speed_deg_s`; the movement model adds `movement_instability` as a third input. That field is a synthetic dimensionless value, not a calibrated muscle-tremor or browser/pilot feature. `GET /api/experimental-rir/assets/:version/model.onnx` serves only the two allowlisted, versioned and hash-verified files with immutable caching; other versions or filenames return 404. Missing, changed, or invalid bundle metadata returns 503.
 
-The ONNX artifact is copied from synthetic run `20261021T155611102710Z`; its manifest records the source artifact and dataset hashes, split counts, preprocessing, and software-only notice. This endpoint serves model bytes only: it does not run inference, store predictions, create workout history, or expose a real-user RIR estimate. The bundle is not research evidence, curl-validated, medically validated, or approved for production use. It must not be confused with the live counting feature or with a trained model based on collected study data.
+| Config route | Bundle version | SHA-256 | Ordered inputs |
+| --- | --- | --- | --- |
+| `/api/experimental-rir/config` (or `/config/speed-only`) | `synthetic-rir-speed-only-v1` | `7c734ec947b86df655635a9bca5058801fb7c63fedf9049eb3a82caf6bdbb627` | `mean_up_speed_deg_s`, `peak_up_speed_deg_s` |
+| `/api/experimental-rir/config/speed-movement` | `synthetic-rir-speed-movement-v1` | `54c30a7a9ccb76ab7b03f5f4ab51b554a59d8f7571ff6156f2e298bd35689c2c` | `mean_up_speed_deg_s`, `peak_up_speed_deg_s`, `movement_instability` |
+
+Both ONNX artifacts are from synthetic run `20261021T155611102710Z`; each manifest records its source artifact and model hash plus the dataset hash, split counts, preprocessing and software-only notice. This endpoint serves model bytes only: it does not run inference, store predictions or create workout history. The models are not research evidence, curl-validated, medically validated, or approved for production use. The movement feature does not establish tremor measurement or improvement over speed-only. Any preview using these models must remain labeled synthetic and experimental, not validated exercise feedback.
 
 ## Personal workout history
 
