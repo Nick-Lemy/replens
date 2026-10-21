@@ -29,9 +29,9 @@ Use Node.js 24 LTS. From the repository root:
 pnpm install
 ```
 
-Follow [backend local setup](web/backend/README.md#local-setup) to create the ignored environment file, choose local database credentials, start PostgreSQL and apply the committed migration. For live curl counting, prepare the pinned pose/runtime files with `node web/backend/scripts/prepare-tracking-assets.mjs` from the repository root. These public model files stay ignored. Then run `pnpm dev` from the repository root.
+Follow [backend local setup](web/backend/README.md#local-setup) to create the ignored environment file and apply migrations to your selected database. For live curl counting, prepare the pinned pose/runtime files with `node web/backend/scripts/prepare-tracking-assets.mjs` from the repository root. These public model files stay ignored. Start the backend with `pnpm start:dev` in `web/backend` and the frontend with `pnpm dev` in `web/frontend`, using separate terminals.
 
-Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. Run the services separately with `pnpm dev:frontend` and `pnpm dev:backend`. `pnpm check` checks TypeScript; `pnpm build` builds both.
+Frontend: http://localhost:5173. Backend health endpoint: http://127.0.0.1:3000/api/health. `pnpm check` checks TypeScript; `pnpm build` builds both.
 
 The React app uses Vite and Tailwind CSS with browser rendering. Better Auth accounts and cookie sessions persist in PostgreSQL through Prisma. The mobile PWA includes signup, signin, signout, display-name editing, password-confirmed account deletion, educational guides and browser-local live curl counting with arm landmarks. Email verification and password reset require backend Resend credentials and a configured sender; actual email delivery remains unverified. Users can explicitly save live-count summaries, view private history and delete entries. Only counts and timing are stored; videos, landmarks and RIR are excluded. RIR inference is not implemented yet. Apply the committed database migrations before using saved history. The live counter uses estimated 3D joints and conservative movement rules; it is not a validated accuracy benchmark. Netlify settings live in `netlify.toml`; production API forwarding and cookie behaviour need verification with the actual frontend/API domains.
 

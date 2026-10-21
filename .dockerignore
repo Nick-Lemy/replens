@@ -1,5 +1,6 @@
 .git
 .github
+.kamal
 .netlify
 .pytest_cache
 .venv

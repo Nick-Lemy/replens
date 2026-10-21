@@ -9,24 +9,24 @@ phone [icon: smartphone, color: blue, label: "Phone"] {
   live [icon: cpu, label: "MediaPipe + ONNX | Live feedback"]
 }
 frontend [icon: netlify, color: blue, label: "Netlify"] {
-  hosting [icon: react, label: "React app + versioned model files"]
+  hosting [icon: react, label: "React app + API proxy"]
 }
-vps [icon: server, color: orange, label: "VPS | Docker Compose"] {
-  gateway [icon: server, label: "Caddy | HTTPS + API routing"]
+vps [icon: server, color: orange, label: "VPS | Kamal"] {
+  gateway [icon: server, label: "Kamal proxy | HTTPS + API routing"]
   backend [icon: node, color: orange, label: "Backend"] {
     api [icon: node, label: "NestJS | Better Auth, guides and history"]
   }
-  database [icon: postgres, color: green, label: "Database"] {
-    db [icon: postgres, label: "PostgreSQL | Accounts and summaries"]
-  }
+}
+database [icon: postgres, color: green, label: "Miget | PostgreSQL"] {
+  db [icon: postgres, label: "Accounts and summaries"]
 }
 training [icon: python, color: purple, label: "Offline model training"] {
   train [icon: python, label: "Python | Train, test and export"]
 }
 
 app <> live: Camera frames / rep count and RIR
-hosting > app: HTTPS | Download app and models
+hosting > app: HTTPS | Download app
 app <> gateway: HTTPS | Auth, guides and summaries
 gateway <> api: Forward API requests
 api <> db: Prisma | Read and write
-train --> hosting: Deploy evaluated model bundle
+train --> vps: Deploy evaluated model bundle

@@ -12,7 +12,7 @@ The frontend uses TanStack Query to manage API loading, errors and an in-memory 
 
 - Node.js 24 LTS.
 - pnpm 11.25.0, matching the root `packageManager` setting.
-- Docker with Docker Compose for the local database. With Miget, Docker is needed only when applying migrations from this Mac; normal `pnpm dev` does not use it.
+- Docker for Miget migrations and later Kamal image builds. Docker Compose is needed only if you choose the optional local database. Starting the apps with Miget does not use Docker.
 
 Run JavaScript commands from the repository root:
 
@@ -38,7 +38,7 @@ Edit `web/backend/.env`. Keep secrets there, outside Git and chat.
 | `API_DOCS_ENABLED` | `true` to enable Swagger locally. |
 | `RESEND_API_KEY` / `EMAIL_FROM` | Optional initially. Leave both blank if you have not configured Resend. |
 
-If port 3000 is occupied, use port 3001 instead: update `PORT` and `BETTER_AUTH_URL` accordingly, then start the app with `API_PROXY_TARGET=http://127.0.0.1:3001 pnpm dev` in the final step below. Do not stop another application just to free its port.
+If port 3000 is occupied, use port 3001 instead: update `PORT` and `BETTER_AUTH_URL` accordingly, then start the frontend with `API_PROXY_TARGET=http://127.0.0.1:3001 pnpm dev`. Do not stop another application just to free its port.
 
 ### Start the database, apply its schema, and prepare pose files
 
@@ -48,7 +48,6 @@ docker compose -f compose.dev.yml up -d
 cd ../..
 pnpm --filter @replens/backend db:migrate
 node web/backend/scripts/prepare-tracking-assets.mjs
-pnpm dev
 ```
 
 A **migration** creates or updates database tables. The asset script downloads the pinned pose/WASM files into the ignored `models/` directory. No participant videos are needed to start the web app.
@@ -63,7 +62,25 @@ The first two migrations were applied to the Miget database on 21 October 2026. 
 pnpm db:migrate:miget
 ```
 
-It runs Prisma's migration command in a temporary Linux container against Miget, then exits. It builds the migration image if one is not cached and mounts the current migration files on every run. Prisma's migration command failed with a TLS protocol error on this Mac; the app itself can still use Miget through `pnpm dev`. Restart the backend after editing `.env`.
+It runs Prisma's migration command in a temporary Linux container against Miget, then exits. It builds the migration image if one is not cached and mounts the current migration files on every run. Prisma's migration command failed with a TLS protocol error on this Mac. Restart the backend after editing `.env`.
+
+### Start the apps in separate terminals
+
+Backend terminal:
+
+```sh
+cd web/backend
+pnpm start:dev
+```
+
+Frontend terminal:
+
+```sh
+cd web/frontend
+pnpm dev
+```
+
+These commands start only their own app. Install dependencies from the repository root first. The frontend sends `/api` requests to the backend on port 3000 by default.
 
 Open:
 
@@ -111,46 +128,15 @@ Without these settings, email actions report unavailable. Signup/signin and the 
 
 ## 3. Prepare actual hosting
 
-You still need:
+The backend uses [Kamal](web/backend/README.md#backend-deployment-with-kamal) on one VPS. The React frontend stays on Netlify; Miget stays the database. No VPS Compose stack or Caddyfile is needed.
 
-- A VPS with Docker/Compose and an API hostname pointing to it.
-- A Netlify site with its final public frontend URL.
-- HTTPS connectivity to the VPS on ports 80/443 for Caddy's setup.
-- Unique production database/auth secrets and a private backup destination.
+1. Obtain a VPS IP, an SSH user/key, and an API hostname pointing to the VPS. Open TCP 80/443. Use root SSH for Kamal's automatic first-time Docker installation, or bootstrap a non-root user yourself.
+2. Fill ignored `.kamal/deploy.env` and `.kamal/secrets` using their tracked `.example` files. Use a new production auth secret and rotate the Miget password that was pasted into chat.
+3. Back up Miget, apply pending migrations with `pnpm db:migrate:miget`, review `kamal config`, then run `kamal setup`. Later releases use `kamal deploy`.
+4. On Netlify, set `API_UPSTREAM_ORIGIN=https://<your API hostname>` and deploy the frontend. The generated same-origin `/api/*` route forwards calls to the VPS.
+5. Check `https://<API hostname>/api/health` and then test accounts, history, guides and live counting through the public Netlify URL on a real phone. Health alone does not prove the database works.
 
-### VPS
-
-Follow [the backend deployment runbook](web/backend/README.md#vps-deployment-configuration).
-
-Copy `web/backend/deploy/production.env.example` to the ignored `web/backend/deploy/.env`. Required values intentionally start blank.
-
-| Setting | Meaning |
-| --- | --- |
-| `API_HOST` | API hostname only, without scheme or path. |
-| `FRONTEND_ORIGIN` | Exact public HTTPS frontend origin. The API uses this as Better Auth's public origin for the frontend proxy arrangement. |
-| `POSTGRES_PASSWORD` / `DATABASE_URL` | Production database credentials; the Compose database service is named `db`, on port 5432. |
-| `BETTER_AUTH_SECRET` | A unique production secret, separate from development. |
-| `DEPLOY_VERSION` | Source commit/image version used for this deployment. |
-| `RESEND_API_KEY` / `EMAIL_FROM` | Your configured sender credentials, or both blank initially. |
-| `API_DOCS_ENABLED` | `false` by default in production. Set `true` only if you want the documentation exposed. |
-
-Provision the pose files, build the images, start PostgreSQL, run the separate migration service, then start API/Caddy. The runbook contains the commands. The API does not apply migrations automatically. API/database host ports stay private; Caddy handles the public routes.
-
-Back up the database before updates, keep a copy outside the VPS, and verify a restore into a separate database. Do not remove volumes containing data you need.
-
-### Netlify
-
-- Build command and publish directory are already set in `netlify.toml`.
-- Set the build environment variable `API_UPSTREAM_ORIGIN` to your real HTTPS API origin, without credentials, path, query or fragment.
-- Deploy the source only after the VPS API is reachable.
-
-`build:netlify` generates a forced proxy for `/api/*`. Missing/invalid upstream configuration deliberately fails the build; a failed deploy preview at this stage does not mean a placeholder API has been published. Normal local builds need no production URL.
-
-After deployment, verify signup, reload/signin persistence, signout, private history, guides, pose downloads and live counting through the **public frontend URL**. Check on actual iPhone/Android browsers. Preview domains are not automatically trusted by the backend configuration.
-
-For production Swagger, explicitly enable `API_DOCS_ENABLED` on the VPS and restart/recreate the API, then append `/api/docs` to your public frontend URL and open it through the same-origin proxy. The documentation toggle does not make protected operations public. Public DNS/TLS, real Netlify cookie handling, production rate-limit behavior and real-phone performance still require hosted verification.
-
-Camera access on a phone needs HTTPS. A plain HTTP laptop LAN address is not equivalent to localhost on that phone. The service worker caches the public interface only; it does not persist API data, camera frames or model bundles.
+Set both Resend values later if you want real verification/reset emails. Production Swagger is off unless you explicitly enable `API_DOCS_ENABLED` in the Kamal config. See the backend runbook for those settings and deployment limits.
 
 ## 4. What live RIR still needs
 
