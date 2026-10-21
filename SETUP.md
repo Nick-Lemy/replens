@@ -128,7 +128,23 @@ Then try signup/signin, guides, a live curl set, explicit save, history after re
 
 Without these settings, email actions report unavailable. Signup/signin and the other implemented features can still work. Real Resend delivery has not yet been verified here.
 
-## 3. Prepare actual hosting
+## 3. Enable Google sign-in
+
+1. In [Google Cloud Console](https://console.cloud.google.com/), select or create the RepLens project. Configure the Google Auth Platform app name, support email and audience. If it is in Testing mode, add the Google accounts that will try the demo as test users.
+2. Open Clients, create an OAuth client, and select **Web application**. Register these exact authorized redirect URIs:
+   - Local: `http://localhost:3000/api/auth/callback/google`
+   - Production: `https://replens.lemy.dev/api/auth/callback/google`
+3. Put both `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` in the ignored `web/backend/.env`, then restart the backend. For local Google testing, open the frontend at `http://localhost:5173` and keep `BETTER_AUTH_URL=http://localhost:3000`; mixing `127.0.0.1` and `localhost` can prevent the OAuth state cookie reaching the callback.
+4. For production, add the same two names as GitHub Actions repository secrets, then run the backend deployment workflow. The workflow forwards both to Kamal automatically. Google credentials belong only in the backend environment and repository secrets; no frontend environment variable is needed.
+5. After deployment, open the account dialog and choose **Continue with Google**. Confirm that Google returns to RepLens, Profile shows the signed-in account, refresh preserves the session, and sign-out works.
+
+`GET /api/auth/providers` reports whether Google is configured. The button is hidden when the credentials are absent; supplying only one credential is a configuration error. The production callback uses the frontend domain because its `/api` proxy carries the same-origin authentication cookies.
+
+Google-only accounts confirm deletion using a recent sign-in; accounts with a password still require that password. Existing email accounts must have a verified local email before Google can be linked to the same address. Real Google sign-in still requires verification after Nick supplies credentials.
+
+Setup references: [Better Auth Google provider](https://better-auth.com/docs/authentication/google), [Google OAuth Web client configuration](https://developers.google.com/identity/protocols/oauth2/web-server#creatingcred).
+
+## 4. Prepare actual hosting
 
 The backend uses [Kamal](web/backend/README.md#backend-deployment-with-kamal) on one VPS. The React frontend stays on Netlify; Miget stays the database. No VPS Compose stack or Caddyfile is needed.
 
@@ -142,7 +158,7 @@ For automatic releases, configure the GitHub Actions variables and `production` 
 
 Set both Resend values later if you want real verification/reset emails. Production Swagger is off unless you explicitly enable `API_DOCS_ENABLED` in the Kamal config. See the backend runbook for those settings and deployment limits.
 
-## 4. What live RIR still needs
+## 5. What live RIR still needs
 
 **RIR means repetitions in reserve: an estimate of how many more valid reps the person could complete.** Counting completed reps cannot establish this by itself.
 
