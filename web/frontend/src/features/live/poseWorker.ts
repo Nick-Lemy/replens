@@ -1,4 +1,4 @@
-import type { PoseLandmarker, PoseLandmarkerResult } from "@mediapipe/tasks-vision";
+import type { PoseLandmarker } from "@mediapipe/tasks-vision";
 import type { PoseWorkerMessage, PoseWorkerRequest } from "./poseWorkerProtocol";
 
 interface TrackingConfig {

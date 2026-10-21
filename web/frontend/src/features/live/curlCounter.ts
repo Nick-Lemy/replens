@@ -119,8 +119,7 @@ export class TwoArmCurlCounter {
   private bottomPreviousAngles: [number, number] | null = null;
   private candidateStart = 0;
   private crossingTimes: [number | null, number | null] = [null, null];
-  private topCrossingTimes: [number | null, number | null] = [null, null];
-  private topWindowEnds: [number | null, number | null] = [null, null];
+  private observedBothAtTop = false;
   private peaks: [number, number] = [-Infinity, -Infinity];
   private peakTimes: [number, number] = [0, 0];
   private peakArms: [ArmLandmarks | null, ArmLandmarks | null] = [null, null];
@@ -180,8 +179,7 @@ export class TwoArmCurlCounter {
     this.phase = this.bottom ? "bottom" : "waiting-bottom";
     this.candidateStart = 0;
     this.crossingTimes = [null, null];
-    this.topCrossingTimes = [null, null];
-    this.topWindowEnds = [null, null];
+    this.observedBothAtTop = false;
     this.peaks = [-Infinity, -Infinity];
     this.peakTimes = [0, 0];
     this.peakArms = [null, null];
@@ -365,12 +363,8 @@ export class TwoArmCurlCounter {
       if (this.crossingTimes[index] === null && angles[index] >= liftThresholds[index]) {
         this.crossingTimes[index] = sample.timestamp;
       }
-      const topThreshold = Math.max(bottom[index] + MIN_BEND_DEGREES, MIN_TOP_FLEXION_DEGREES);
-      if (angles[index] >= topThreshold) {
-        this.topCrossingTimes[index] ??= sample.timestamp;
-        this.topWindowEnds[index] = sample.timestamp;
-      }
     }
+    this.observeBothAtTop(angles, bottom);
     if (this.crossingTimes[0] === null && this.crossingTimes[1] === null) {
       return this.result("tracking", sample.arms[0], sample.arms[1]);
     }
@@ -383,8 +377,6 @@ export class TwoArmCurlCounter {
           return this.result("start-position", sample.arms[0], sample.arms[1]);
         }
         this.crossingTimes[index] = null;
-        this.topCrossingTimes[index] = null;
-        this.topWindowEnds[index] = null;
       }
     }
 
@@ -409,11 +401,6 @@ export class TwoArmCurlCounter {
     }
 
     for (const index of [0, 1] as const) {
-      const topThreshold = Math.max(bottom[index] + MIN_BEND_DEGREES, MIN_TOP_FLEXION_DEGREES);
-      if (angles[index] >= topThreshold) {
-        this.topCrossingTimes[index] ??= sample.timestamp;
-        this.topWindowEnds[index] = sample.timestamp;
-      }
       if (angles[index] > this.peaks[index]) {
         this.peaks[index] = angles[index];
         this.peakTimes[index] = sample.timestamp;
@@ -421,16 +408,13 @@ export class TwoArmCurlCounter {
       }
     }
 
+    this.observeBothAtTop(angles, bottom);
     const returned = angles[0] <= bottom[0] + 15 && angles[1] <= bottom[1] + 15;
     if (!returned) return this.result("tracking", sample.arms[0], sample.arms[1]);
 
     const startArms = this.startArms!;
     const peaks = this.peakArms;
     const bothPeaks = !!peaks[0] && !!peaks[1];
-    const topWindowOverlap = this.topCrossingTimes[0] !== null && this.topCrossingTimes[1] !== null &&
-      this.topWindowEnds[0] !== null && this.topWindowEnds[1] !== null &&
-      Math.max(this.topCrossingTimes[0], this.topCrossingTimes[1]) <=
-        Math.min(this.topWindowEnds[0], this.topWindowEnds[1]);
     const enoughBend = this.peaks[0] - bottom[0] >= MIN_BEND_DEGREES &&
       this.peaks[1] - bottom[1] >= MIN_BEND_DEGREES &&
       this.peaks[0] >= MIN_TOP_FLEXION_DEGREES &&
@@ -470,10 +454,10 @@ export class TwoArmCurlCounter {
     );
     const plausibleCurl = wristsRose && elbowsStayed;
 
-    const completedCurl = topWindowOverlap && enoughBend && enoughTime && plausibleCurl;
+    const completedCurl = this.observedBothAtTop && enoughBend && enoughTime && plausibleCurl;
     this.lastRejection = completedCurl
       ? null
-      : !topWindowOverlap
+      : !this.observedBothAtTop
         ? "Both arms need to reach the top together."
         : !enoughBend
           ? "Curl farther before returning to the start."
@@ -491,5 +475,12 @@ export class TwoArmCurlCounter {
       this.rearmSamples = 0;
     }
     return this.result(completedCurl ? "tracking" : "start-position", sample.arms[0], sample.arms[1]);
+  }
+
+  private observeBothAtTop(angles: [number, number], bottom: [number, number]): void {
+    const topThresholds = bottom.map((angle) => Math.max(angle + MIN_BEND_DEGREES, MIN_TOP_FLEXION_DEGREES));
+    if (angles[0] >= topThresholds[0] && angles[1] >= topThresholds[1]) {
+      this.observedBothAtTop = true;
+    }
   }
 }

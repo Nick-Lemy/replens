@@ -142,6 +142,25 @@ test("one arm, alternating arms, and partial curls do not count", () => {
   });
 });
 
+test("separate alternating top holds never satisfy simultaneous bilateral top", () => {
+  const counter = new TwoArmCurlCounter();
+  for (let timestamp = 0; timestamp <= 1_000; timestamp += 100) {
+    counter.update(frame(timestamp), false);
+  }
+  counter.beginSet(1_000);
+  const sequence = [
+    [130, 20], [70, 20], [70, 130], [70, 70], [130, 70], [70, 20], [20, 20],
+  ];
+  let timestamp = 1_100;
+  for (const [left, right] of sequence) {
+    for (let step = 0; step < 10; step += 1) {
+      counter.update(frame(timestamp, left, right), true);
+      timestamp += 100;
+    }
+  }
+  assert.equal(counter.count, 0);
+});
+
 test("brief pose loss preserves a rep while a long frame gap safely resets it", () => {
   const run = (gap) => {
     const counter = new TwoArmCurlCounter();

@@ -120,11 +120,9 @@ export function useLiveTracking(videoRef: RefObject<HTMLVideoElement | null>, st
       // Do not let that pre-start pose mutate the freshly reset counter state.
       if (countingRef.current && message.timestamp < countingStartedAtRef.current) return;
       const frame = poseFrameFromMessage(message);
-      {
-        const next = counterRef.current.update(frame, countingRef.current);
-        countRef.current = next.count;
-        setResult(next);
-      }
+      const next = counterRef.current.update(frame, countingRef.current);
+      countRef.current = next.count;
+      setResult(next);
     };
     worker.onerror = () => fail("Live tracking stopped unexpectedly. Turn the camera off and try again.");
     worker.onmessageerror = () => fail("Live tracking returned an unreadable frame. Turn the camera off and try again.");
