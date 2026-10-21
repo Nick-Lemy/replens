@@ -19,7 +19,16 @@ COPY web/backend web/backend
 RUN CI=true pnpm --filter @replens/backend build
 
 # This image is run explicitly by the operator to apply migrations.
-FROM workspace AS migration
+FROM base AS migration
+WORKDIR /workspace
+RUN corepack enable && corepack prepare pnpm@11.25.0 --activate
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY .husky/install.mjs .husky/install.mjs
+COPY web/backend/package.json web/backend/package.json
+COPY web/frontend/package.json web/frontend/package.json
+RUN CI=true pnpm install --frozen-lockfile --filter @replens/backend...
+COPY web/backend/prisma.config.ts web/backend/prisma.config.ts
+COPY web/backend/prisma web/backend/prisma
 ENV NODE_ENV=production
 CMD ["pnpm", "--filter", "@replens/backend", "db:migrate"]
 

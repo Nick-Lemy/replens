@@ -12,7 +12,7 @@ The frontend uses TanStack Query to manage API loading, errors and an in-memory 
 
 - Node.js 24 LTS.
 - pnpm 11.25.0, matching the root `packageManager` setting.
-- Docker with Docker Compose. On your Mac, start Docker Desktop first.
+- Docker with Docker Compose for the local database. With Miget, Docker is needed only when applying migrations from this Mac; normal `pnpm dev` does not use it.
 
 Run JavaScript commands from the repository root:
 
@@ -52,6 +52,18 @@ pnpm dev
 ```
 
 A **migration** creates or updates database tables. The asset script downloads the pinned pose/WASM files into the ignored `models/` directory. No participant videos are needed to start the web app.
+
+#### Using Miget instead of the local database
+
+Put Miget's external PostgreSQL URL in `web/backend/.env` as `DATABASE_URL`. Append `?sslmode=require&uselibpqcompat=true&sslaccept=accept_invalid_certs` if the URL has no query string. The connection uses TLS, but these options do not verify Miget's certificate; obtain a verifiable external certificate/hostname from Miget before using real accounts. Do not start `compose.dev.yml` when using Miget.
+
+The first two migrations were applied to the Miget database on 21 October 2026. When new migrations are added, run this single command from the repository root:
+
+```sh
+pnpm db:migrate:miget
+```
+
+It runs Prisma's migration command in a temporary Linux container against Miget, then exits. It builds the migration image if one is not cached and mounts the current migration files on every run. Prisma's migration command failed with a TLS protocol error on this Mac; the app itself can still use Miget through `pnpm dev`. Restart the backend after editing `.env`.
 
 Open:
 

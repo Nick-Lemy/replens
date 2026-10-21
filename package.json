@@ -12,6 +12,7 @@
     "build": "pnpm -r build",
     "check": "pnpm -r check",
     "test": "pnpm -r --if-present test",
+    "db:migrate:miget": "node scripts/migrate-miget.mjs",
     "prepare": "node .husky/install.mjs",
     "hooks:install": "husky",
     "start:backend": "pnpm --filter @replens/backend start:prod"
