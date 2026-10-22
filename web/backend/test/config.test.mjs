@@ -27,3 +27,10 @@ test('proxy trust accepts only explicit IP addresses and valid CIDRs', () => {
     assert.throws(() => readConfig({ ...valid, TRUSTED_PROXY_CIDRS: value }), /TRUSTED_PROXY/);
   }
 });
+test('Google OAuth credentials are optional but must be configured as a pair', () => {
+  assert.equal(readConfig(valid).googleClientId, undefined);
+  const configured = readConfig({ ...valid, GOOGLE_CLIENT_ID: 'client-id', GOOGLE_CLIENT_SECRET: 'client-secret' });
+  assert.deepEqual([configured.googleClientId, configured.googleClientSecret], ['client-id', 'client-secret']);
+  assert.throws(() => readConfig({ ...valid, GOOGLE_CLIENT_ID: 'client-id' }), /configured together/);
+  assert.throws(() => readConfig({ ...valid, GOOGLE_CLIENT_SECRET: 'client-secret' }), /configured together/);
+});

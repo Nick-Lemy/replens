@@ -100,7 +100,8 @@ test('current-user contract is authenticated and excludes session secrets', asyn
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(data.user.email, email);
   assert.equal(data.user.emailVerified, false);
-  assert.deepEqual(Object.keys(data), ['user']);
+  assert.deepEqual(Object.keys(data).sort(), ['accountDeletion', 'user']);
+  assert.deepEqual(data.accountDeletion, { requiresPassword: true, recentSessionAllowed: false });
   assert.ok(!JSON.stringify(data).includes('token'));
 });
 test('private aliases remain uncached', async () => {

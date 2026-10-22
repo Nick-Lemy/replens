@@ -78,6 +78,8 @@ jobs:
           DEPLOY_SSH_PRIVATE_KEY: ${{ secrets.DEPLOY_SSH_PRIVATE_KEY }}
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: |
           set -euo pipefail
           for name in REPLENS_VPS_IP REPLENS_API_HOST REPLENS_FRONTEND_ORIGIN DEPLOY_SSH_PRIVATE_KEY DATABASE_URL BETTER_AUTH_SECRET; do
@@ -91,7 +93,16 @@ jobs:
           key_path="$HOME/.ssh/replens-deploy-key"
           printf '%s\n' "$DEPLOY_SSH_PRIVATE_KEY" > "$key_path"
           printf 'REPLENS_SSH_KEY=%s\n' "$key_path" >> "$GITHUB_ENV"
+          if [[ -n "$GOOGLE_CLIENT_ID" && -z "$GOOGLE_CLIENT_SECRET" ]] || [[ -z "$GOOGLE_CLIENT_ID" && -n "$GOOGLE_CLIENT_SECRET" ]]; then
+            echo "GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET must be configured together" >&2
+            exit 1
+          fi
           printf '%s\n' "DATABASE_URL=\$DATABASE_URL" "BETTER_AUTH_SECRET=\$BETTER_AUTH_SECRET" > .kamal/secrets
+          if [[ -n "$GOOGLE_CLIENT_ID" ]]; then
+            printf '%s\n' 'REPLENS_GOOGLE_OAUTH_ENABLED=true' >> "$GITHUB_ENV"
+            printf 'GOOGLE_CLIENT_ID=%s\nGOOGLE_CLIENT_SECRET=%s\n' "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" >> "$GITHUB_ENV"
+            printf '%s\n' "GOOGLE_CLIENT_ID=\$GOOGLE_CLIENT_ID" "GOOGLE_CLIENT_SECRET=\$GOOGLE_CLIENT_SECRET" >> .kamal/secrets
+          fi
       - name: Verify Kamal configuration and SSH
         shell: bash
         run: |
@@ -118,6 +129,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: kamal setup
       - name: Deploy backend
         id: deploy_backend
@@ -125,6 +138,8 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           BETTER_AUTH_SECRET: ${{ secrets.BETTER_AUTH_SECRET }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
         run: kamal deploy
       - name: Verify public API
         id: verify_public_api
@@ -140,7 +155,7 @@ jobs:
           redact_logs() {
             sed -E \
               -e 's#(postgres(ql)?://)[^[:space:]]+#\1[REDACTED]#g' \
-              -e 's#((DATABASE_URL|BETTER_AUTH_SECRET|RESEND_API_KEY|EMAIL_FROM)[=: ]+)[^[:space:],"]+#\1[REDACTED]#Ig' \
+              -e 's#((DATABASE_URL|BETTER_AUTH_SECRET|GOOGLE_CLIENT_SECRET|RESEND_API_KEY|EMAIL_FROM)[=: ]+)[^[:space:],"]+#\1[REDACTED]#Ig' \
               -e 's#([?][^[:space:],"]+)#[QUERY-REDACTED]#g' \
               -e 's#((cookie|authorization):[[:space:]]*)[^[:space:],"]+#\1[REDACTED]#Ig' \
               -e 's#(Bearer )[A-Za-z0-9._~+/-]+=*#\1[REDACTED]#Ig'
