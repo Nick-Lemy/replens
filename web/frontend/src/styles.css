@@ -19,7 +19,7 @@
   --color-danger: var(--theme-danger);
   --color-danger-text: var(--theme-danger-text);
   --color-danger-foreground: var(--theme-danger-foreground);
-  --font-sans: "Sora", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Comfortaa", ui-sans-serif, system-ui, sans-serif;
 }
 
 @layer base {

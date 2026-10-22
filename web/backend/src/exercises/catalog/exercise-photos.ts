@@ -11,29 +11,25 @@ export interface ExercisePhotoSet {
 export const exercisePhotos: Record<string, ExercisePhotoSet> = {
   "two-arm-dumbbell-curl": {
     images: [
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bicep_Curl/0.jpg",
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Bicep_Curl/1.jpg",
+      "https://images.pexels.com/photos/6455960/pexels-photo-6455960.jpeg?auto=compress&cs=tinysrgb&w=960",
     ],
-    sourceUrl:
-      "https://github.com/yuhonas/free-exercise-db/tree/main/exercises/Dumbbell_Bicep_Curl",
-    credit: "Free Exercise DB",
-    creditUrl: "https://github.com/yuhonas/free-exercise-db",
-    license: "Unlicense",
-    licenseUrl:
-      "https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md",
+    sourceUrl: "https://www.pexels.com/photo/black-muscular-sportsman-exercising-with-heavy-dumbbells-6455960/",
+    credit: "Julia Larson / Pexels",
+    creditUrl: "https://www.pexels.com/photo/black-muscular-sportsman-exercising-with-heavy-dumbbells-6455960/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    variation: "Photo shows alternating curls. For live tracking, lift both arms together as described below.",
   },
   "hammer-curl": {
     images: [
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/0.jpg",
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Hammer_Curls/1.jpg",
+      "https://images.pexels.com/photos/6455970/pexels-photo-6455970.jpeg?auto=compress&cs=tinysrgb&w=960",
     ],
-    sourceUrl:
-      "https://github.com/yuhonas/free-exercise-db/tree/main/exercises/Hammer_Curls",
-    credit: "Free Exercise DB",
-    creditUrl: "https://github.com/yuhonas/free-exercise-db",
-    license: "Unlicense",
-    licenseUrl:
-      "https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md",
+    sourceUrl: "https://www.pexels.com/photo/strong-black-sportsman-exercising-with-dumbbells-6455970/",
+    credit: "Julia Larson / Pexels",
+    creditUrl: "https://www.pexels.com/photo/strong-black-sportsman-exercising-with-dumbbells-6455970/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
+    variation: "Side view of a neutral-grip hammer curl.",
   },
   "seated-biceps-curl": {
     images: [
@@ -64,16 +60,13 @@ export const exercisePhotos: Record<string, ExercisePhotoSet> = {
   },
   "barbell-bench-press": {
     images: [
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg",
+      "https://images.pexels.com/photos/7371361/pexels-photo-7371361.jpeg?auto=compress&cs=tinysrgb&w=960",
     ],
-    sourceUrl:
-      "https://github.com/yuhonas/free-exercise-db/tree/main/exercises/Barbell_Bench_Press_-_Medium_Grip",
-    credit: "Free Exercise DB",
-    creditUrl: "https://github.com/yuhonas/free-exercise-db",
-    license: "Unlicense",
-    licenseUrl:
-      "https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md",
+    sourceUrl: "https://www.pexels.com/photo/a-man-doing-bench-press-7371361/",
+    credit: "Zennis Se / Pexels",
+    creditUrl: "https://www.pexels.com/photo/a-man-doing-bench-press-7371361/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
   },
   "barbell-row": {
     images: [
@@ -116,16 +109,13 @@ export const exercisePhotos: Record<string, ExercisePhotoSet> = {
   },
   "bodyweight-squat": {
     images: [
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
-      "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/1.jpg",
+      "https://images.pexels.com/photos/8846586/pexels-photo-8846586.jpeg?auto=compress&cs=tinysrgb&w=960",
     ],
-    sourceUrl:
-      "https://github.com/yuhonas/free-exercise-db/tree/main/exercises/Bodyweight_Squat",
-    credit: "Free Exercise DB",
-    creditUrl: "https://github.com/yuhonas/free-exercise-db",
-    license: "Unlicense",
-    licenseUrl:
-      "https://github.com/yuhonas/free-exercise-db/blob/main/LICENSE.md",
+    sourceUrl: "https://www.pexels.com/photo/a-woman-exercising-8846586/",
+    credit: "MART PRODUCTION / Pexels",
+    creditUrl: "https://www.pexels.com/photo/a-woman-exercising-8846586/",
+    license: "Pexels License",
+    licenseUrl: "https://www.pexels.com/license/",
   },
   "goblet-squat": {
     images: [

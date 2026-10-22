@@ -20,6 +20,8 @@ test("every guide has public photo sources and licensing metadata", () => {
           url.pathname.startsWith(
             "/yuhonas/free-exercise-db/main/exercises/",
           )) ||
+          (url.hostname === "images.pexels.com" &&
+            /^\/photos\/\d+\/pexels-photo-\d+\.jpeg$/.test(url.pathname)) ||
           (url.hostname === "commons.wikimedia.org" &&
             url.pathname.startsWith("/wiki/Special:FilePath/")),
         `Unexpected photo provider for ${exercise.id}`,

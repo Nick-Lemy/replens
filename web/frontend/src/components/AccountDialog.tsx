@@ -3,8 +3,10 @@ import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../features/auth/AuthProvider";
 import { requestPasswordReset } from "../features/auth/api";
 import { Icon } from "./Icon";
+import { useBodyScrollLock } from "../hooks/useBodyScrollLock";
 
 export function AccountDialog({ close, returnFocus }: { close: () => void; returnFocus: HTMLElement | null }) {
+  useBodyScrollLock();
   const ref = useRef<HTMLDialogElement>(null);
   const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
   const { authenticate, authenticateGoogle, googleAvailable, googlePending, providerLoadFailed, pending, error } = useAuth();
@@ -20,7 +22,7 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
   return (
     <dialog
       ref={ref}
-      className="fixed inset-0 m-auto py-[35px] px-6.5 bg-surface text-foreground border border-line rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
+      className="fixed inset-0 m-auto py-[35px] px-6.5 bg-surface text-foreground border border-line rounded-3xl w-[min(440px,_calc(100vw_-_32px))] max-h-[calc(100dvh_-_32px)] overflow-y-auto overscroll-contain backdrop:bg-[#000b] backdrop:backdrop-blur-[6px]"
       onCancel={(event) => { if (pending || googlePending) event.preventDefault(); else close(); }}
       onClick={(event) => {
         const rect = ref.current?.getBoundingClientRect();
@@ -54,18 +56,6 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
       <p className="text-muted text-sm leading-[1.75] mt-3">
         {mode === "forgot" ? "Enter your account email to request a reset link." : "Create an account or sign in to RepLens."}
       </p>
-      {mode !== "forgot" && googleAvailable && <>
-        <button
-          type="button"
-          disabled={pending || googlePending}
-          className="mt-6 flex items-center justify-center gap-3 min-h-12 rounded-xl px-4 text-sm font-medium w-full bg-white text-[#1f1f1f] border border-[#747775] disabled:opacity-60"
-          onClick={async () => { setAttempted(true); await authenticateGoogle("current"); }}
-        >
-          <img src="/google-signin-icon.svg" alt="" className="size-10" />
-          {googlePending ? "Connecting…" : "Continue with Google"}
-        </button>
-        <div className="mt-4 flex items-center gap-3 text-[11px] text-muted" aria-hidden="true"><span className="h-px bg-line flex-1" />or continue with email<span className="h-px bg-line flex-1" /></div>
-      </>}
       {mode !== "forgot" && providerLoadFailed && <p role="status" className="mt-4 text-xs leading-[1.7] text-muted">Google sign-in options could not be loaded. You can still use email.</p>}
       {mode === "forgot" ? <form className="mt-6 grid gap-4" onSubmit={async (event) => {
         event.preventDefault();
@@ -135,6 +125,24 @@ export function AccountDialog({ close, returnFocus }: { close: () => void; retur
           {pending ? "Please wait…" : mode === "signin" ? "Sign in" : "Create account"}
         </button>
       </form>}
+      {mode !== "forgot" && googleAvailable && (
+        <div className="mt-6">
+          <div className="flex items-center gap-4 text-xs text-muted" aria-hidden="true">
+            <span className="h-px flex-1 bg-line" />
+            <span>or</span>
+            <span className="h-px flex-1 bg-line" />
+          </div>
+          <button
+            type="button"
+            disabled={pending || googlePending}
+            className="mt-5 flex min-h-13 w-full items-center justify-center gap-3 rounded-xl border border-line bg-control px-5 py-3.5 text-[13px] font-medium text-foreground transition-colors hover:bg-input focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-accent disabled:cursor-wait disabled:opacity-60"
+            onClick={async () => { setAttempted(true); await authenticateGoogle("current"); }}
+          >
+            <img src="/google-signin-icon.svg" alt="" width={20} height={20} className="size-5 shrink-0" />
+            <span>{googlePending ? "Connecting…" : "Continue with Google"}</span>
+          </button>
+        </div>
+      )}
       <button
         className="text-secondary text-xs p-2.5 underline-offset-4 hover:underline mt-6 w-full"
         disabled={pending || resetPending}
